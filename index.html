@@ -2585,6 +2585,9 @@
         <button class="btn-mini primary" style="background:linear-gradient(135deg,#DC2626,#7F1D1D);" onclick="openDelDataPwd()">
           🗑 刪除資料（個人／月份／項目）
         </button>
+        <button class="btn-mini primary" style="background:linear-gradient(135deg,#7F1D1D,#450A0A);" onclick="openWipeAll()">
+          ☠ 清空全部員工資料
+        </button>
         <button class="btn-mini primary" style="background:linear-gradient(135deg,#3B82F6,#1E40AF);" onclick="openHireDatePwd()">
           📅 修正到職日
         </button>
@@ -2597,6 +2600,37 @@
         <button class="btn-mini primary" style="background:linear-gradient(135deg,#334155,#0F172A);" onclick="openVarMap()">
           🗺 變數關係圖
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ☠ 清空全部員工資料（老闆）— 密碼＋確認 -->
+  <div class="small-modal-overlay" id="wipeAllOverlay" onclick="closeWipeAll(event)">
+    <div class="small-modal" onclick="event.stopPropagation()">
+      <div class="head" style="background:linear-gradient(135deg,#7F1D1D,#450A0A);">
+        <div class="icon-l">☠</div>
+        <h2>清空全部員工資料</h2>
+        <button class="close" onclick="closeWipeAll()">✕</button>
+      </div>
+      <div class="body">
+        <p style="margin:0 0 12px;color:#991B1B;font-size:13px;background:#FEF2F2;padding:8px 12px;border-radius:6px;border-left:3px solid #DC2626;line-height:1.7;">
+          ⚠ 會刪除<b>所有校區</b>（林口校、國中部、已隱藏的莊敬）的全部員工資料與全部月份薪資紀錄，無法復原。<br>
+          執行前會先下載一份備份到本機，並備份到雲端硬碟 Kidcastle_Backups；任何一份備份失敗就不會刪除。
+        </p>
+        <div class="alert error" id="wipeAllErr">⚠ <span id="wipeAllErrMsg">—</span></div>
+        <div class="field">
+          <label>Boss 密碼</label>
+          <input type="password" id="wipeAllPwd" placeholder="輸入 boss 密碼">
+        </div>
+        <div class="field">
+          <label>請輸入「刪除全部」四個字確認</label>
+          <input type="text" id="wipeAllConfirm" placeholder="刪除全部" autocomplete="off">
+        </div>
+        <div id="wipeAllCount" style="font-size:12px;color:#64748b;"></div>
+      </div>
+      <div class="foot">
+        <button class="btn-mini secondary" onclick="closeWipeAll()">取消</button>
+        <button class="btn-mini primary" onclick="executeWipeAll()" style="background:linear-gradient(135deg,#7F1D1D,#450A0A);">☠ 備份並清空</button>
       </div>
     </div>
   </div>
@@ -4847,6 +4881,74 @@
   //   項目：把某個項目歸零（本月項目可限月份；可限員工、校區）
   //   執行前自動備份整份資料到雲端硬碟 Kidcastle_Backups；備份失敗就不刪除
   // ==========================================================================
+  // ☠ 清空全部員工資料（老闆，需 boss 密碼＋輸入「刪除全部」）
+  //   只在老闆按下按鈕時執行（不會在載入時自動執行）；先下載本機備份＋雲端備份，任一失敗就不刪除
+  function openWipeAll() {
+    if (!currentUser || currentUser.role !== 'owner') { toast('僅老闆可使用此功能', 'error'); return; }
+    $('wipeAllPwd').value = ''; $('wipeAllConfirm').value = '';
+    $('wipeAllErr').classList.remove('show');
+    const hid = DATA.hiddenCampus || {};
+    $('wipeAllCount').textContent = `目前：員工 ${DATA.employees.length} 位、薪資紀錄 ${DATA.salary.length} 筆；已隱藏（莊敬）員工 ${(hid.employees || []).length} 位、薪資 ${(hid.salary || []).length} 筆`;
+    if (window.resetPwdEyes) resetPwdEyes($('wipeAllOverlay'));
+    $('wipeAllOverlay').classList.add('show');
+    setTimeout(() => $('wipeAllPwd').focus(), 80);
+  }
+  function closeWipeAll(e) {
+    if (e && e.target !== e.currentTarget) return;
+    $('wipeAllOverlay').classList.remove('show');
+  }
+  async function executeWipeAll() {
+    const err = m => { $('wipeAllErrMsg').textContent = m; $('wipeAllErr').classList.add('show'); };
+    if (!currentUser || currentUser.role !== 'owner') return err('僅老闆可使用此功能');
+    const pwd = ($('wipeAllPwd').value || '').trim();
+    if (!pwd) return err('請輸入密碼');
+    const sid = currentUser.schoolId;
+    const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
+    if (!boss) return err('本校區無 boss 帳號');
+    if (pwd !== boss.password) return err('密碼錯誤');
+    if (($('wipeAllConfirm').value || '').trim() !== '刪除全部') return err('請輸入「刪除全部」四個字');
+    if (!confirm('最後確認：將刪除所有校區的全部員工資料與薪資紀錄，無法復原。\n\n系統會先備份再刪除。確定嗎？')) return;
+    closeWipeAll();
+    showLoadingOverlay('☁ 正在備份資料…');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const backupName = `清空前備份_${stamp}.json`;
+    const json = JSON.stringify(DATA);
+    try {
+      // 1) 本機下載
+      const blob = new Blob([json], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = backupName;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      // 2) 雲端硬碟
+      await cloudPost('backup', { folder: 'Kidcastle_Backups', filename: backupName, mime: 'application/json', contentBase64: utf8ToBase64(json) });
+    } catch (e) {
+      hideLoadingOverlay();
+      toast('備份失敗，已取消刪除：' + e.message, 'error');
+      return;
+    }
+    const nEmp = DATA.employees.length, nSal = DATA.salary.length;
+    DATA.employees = [];
+    DATA.salary = [];
+    DATA.ownerBaseline = {};
+    delete DATA.hiddenCampus;
+    showLoadingOverlay('☁ 正在寫入雲端…');
+    try {
+      await doPersistNow();
+      hideLoadingOverlay();
+      appendLog({ time: nowTimestamp(), user: currentUser.fullName, text: `☠ 清空全部員工資料 — 員工 ${nEmp} 位、薪資 ${nSal} 筆（含已隱藏莊敬；已備份：Kidcastle_Backups/${backupName}）` });
+      try { populatePayslipSelectors(); } catch (_) {}
+      try { populateManagerSelectors(); } catch (_) {}
+      try { renderManagerTable(); } catch (_) {}
+      try { renderOwnerTable(); } catch (_) {}
+      try { renderPayslip(); } catch (_) {}
+      try { populateDashMonth(); renderDashboard(); } catch (_) {}
+      toast(`✓ 已清空：員工 ${nEmp} 位、薪資 ${nSal} 筆（備份：${backupName}）`, 'success');
+    } catch (e) {
+      hideLoadingOverlay();
+      toast('雲端寫入失敗：' + e.message + '（備份檔：' + backupName + '）', 'error');
+    }
+  }
   const DEL_MONTH_ITEMS = ['加班時數','支薪時數','請假時數','遲到次數','獎金','扣款','考試津貼','預繳津貼','安親人數','混班數','兼職美語授課時數','與外師共同上課時數','全勤','備註'];
   const DEL_EMP_ITEMS = ['年資津貼','主管津貼','美語津貼','美語輔導津貼','數學班津貼','帶班人數津貼','混班津貼','數學津貼',
                          '留班獎金','考試獎金','其他津貼','補貼公會投保勞保','補貼公會健保自付','補貼健保眷屬','補貼退休金','現金給付',
@@ -11363,6 +11465,13 @@
   // ── 版本與修改記錄 ──────────────────────────────────────────────
   // 每次修改系統：在陣列「最上面」新增一筆。版本格式 VyyyymmddVhhmm（例：V20261009V2100 = 2026/10/09 21:00）
   const APP_CHANGELOG = [
+    {
+      version: 'V20261023V1530', date: '2026-10-23 15:30',
+      changes: [
+        '新增老闆專用「☠ 清空全部員工資料」（總覽 → 🔧 管理工具）：需 Boss 密碼並輸入「刪除全部」，清除所有校區（林口校、國中部、已隱藏的莊敬）全部員工與全部月份薪資紀錄',
+        '清空前先下載本機備份並備份到雲端硬碟 Kidcastle_Backups，任一份失敗就不刪除；只在老闆按按鈕時執行，不會在載入時自動執行'
+      ]
+    },
     {
       version: 'V20261023V1500', date: '2026-10-23 15:00',
       changes: [
