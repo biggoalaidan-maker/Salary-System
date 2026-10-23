@@ -1,0 +1,614 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kidcastle 薪資查詢 — 員工自助</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📄%3C/text%3E%3C/svg%3E">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",Arial,sans-serif;
+  background:linear-gradient(135deg,#10B981 0%,#047857 100%);
+  min-height:100vh; color:#1e293b;
+}
+body.role-employee .ps-row.zero { display:none !important; }
+body.role-employee .ps-col.all-zero,
+body.role-employee .ps-section-h > div.all-zero,
+body.role-employee .ps-subtotal > div.all-zero,
+body.role-employee .ps-cash-row.all-zero { display:none !important; }
+.wrap { max-width:880px; margin:0 auto; padding:30px 20px; }
+header { text-align:center; color:#fff; margin-bottom:24px; }
+header h1 { font-size:28px; letter-spacing:1px; text-shadow:0 2px 8px rgba(0,0,0,.2); }
+header .sub { font-size:14px; opacity:.9; margin-top:4px; }
+.card {
+  background:#fff; border-radius:18px; padding:28px;
+  box-shadow:0 16px 40px rgba(0,0,0,.2); margin-bottom:18px;
+}
+.card h2 { color:#065F46; font-size:18px; margin-bottom:14px; border-bottom:2px solid #10B981; padding-bottom:6px; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:13px; font-weight:600; color:#475569; margin-bottom:5px; }
+.field input, .field select {
+  width:100%; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:10px;
+  font-size:15px; font-family:inherit; background:#f8fafc;
+}
+.field input:focus, .field select:focus {
+  outline:none; border-color:#10B981; background:#fff;
+  box-shadow:0 0 0 3px rgba(16,185,129,.15);
+}
+.btn {
+  display:block; width:100%; padding:13px; border:none; border-radius:10px;
+  font-size:16px; font-weight:700; color:#fff;
+  background:linear-gradient(135deg,#10B981,#047857);
+  cursor:pointer; font-family:inherit;
+  box-shadow:0 6px 18px rgba(16,185,129,.3);
+}
+.btn:hover { transform:translateY(-1px); }
+.btn:disabled { opacity:.6; cursor:not-allowed; }
+.alert { padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
+.alert.show { display:block; }
+.alert.error { background:#FEF2F2; color:#991B1B; border-left:3px solid #DC2626; }
+.alert.success { background:#F0FDF4; color:#065F46; border-left:3px solid #10B981; }
+.back { display:inline-block; margin-bottom:8px; color:#fff; text-decoration:none; font-size:14px; }
+.back:hover { text-decoration:underline; }
+/* Payslip styling — mirrors homepage.html */
+.payslip { background:#fff; border-radius:14px; padding:24px 30px; box-shadow:0 8px 24px rgba(0,0,0,.12); }
+.ps-header { text-align:center; border-bottom:3px solid #047857; padding-bottom:10px; margin-bottom:14px; }
+.ps-header h2 { font-size:22px; color:#047857; }
+.ps-header .sub { font-size:12px; color:#64748b; margin-top:4px; }
+.ps-info { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.ps-info .it { background:#f8fafc; padding:9px 12px; border-radius:8px; border-left:3px solid #10B981; }
+.ps-info .k { font-size:11px; color:#64748b; }
+.ps-info .v { font-size:14px; font-weight:600; }
+.ps-section-h { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px; }
+.ps-section-h > div { text-align:center; padding:8px; background:#10B981; color:#fff; font-weight:700; font-size:13px; border-radius:6px; }
+.ps-section-h .deduct { background:#C62828; }
+.ps-rows { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.ps-col { background:#f8fafc; border-radius:6px; padding:8px; }
+.ps-col.deduct { background:#FEF2F2; }
+.ps-row { display:flex; justify-content:space-between; padding:5px 8px; font-size:13px; border-bottom:1px dashed #e2e8f0; }
+.ps-row:last-child { border-bottom:none; }
+.ps-row.zero { color:#cbd5e1; }
+.ps-row .lbl { color:#475569; }
+.ps-row .val { font-family:Arial; font-weight:600; }
+.ps-subtotal { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:8px; }
+.ps-subtotal > div { display:flex; justify-content:space-between; padding:9px 13px; background:#D1FAE5; border-radius:6px; font-weight:700; font-size:14px; }
+.ps-subtotal .deduct { background:#FEE2E2; color:#991B1B; }
+.ps-subtotal .val { font-family:Arial; }
+.ps-cash-row {
+  margin-top:8px; padding:9px 13px; background:#FEF3C7; color:#92400E;
+  border-radius:6px; border-left:4px solid #F59E0B;
+  display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px;
+}
+.ps-cash-row .val { font-family:Arial; font-size:15px; }
+.ps-net {
+  margin-top:12px; padding:16px 22px;
+  background:linear-gradient(135deg,#34D399,#10B981);
+  color:#fff; border-radius:12px;
+  display:flex; justify-content:space-between; align-items:center;
+  box-shadow:0 8px 22px rgba(16,185,129,.3); flex-wrap:wrap; gap:10px;
+}
+.ps-net .lbl { font-size:15px; font-weight:600; }
+.ps-net .val { font-size:28px; font-weight:800; font-family:Arial; }
+.ps-notes { margin-top:14px; padding:12px 16px; background:linear-gradient(135deg,#FEF9C3,#FEF3C7); border-left:5px solid #EAB308; border-radius:10px; color:#422006; }
+.ps-notes-h { font-weight:700; font-size:14px; margin-bottom:6px; color:#854D0E; }
+.ps-notes-body { font-size:13px; line-height:1.7; }
+.toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.toolbar select { flex:1; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-family:inherit; background:#f8fafc; }
+.toolbar button { padding:8px 14px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+.toolbar button.print { background:#1e293b; color:#fff; }
+.toolbar button.logout { background:#fee2e2; color:#991B1B; }
+.loading { text-align:center; padding:30px; color:#64748b; }
+.loading .spin { width:36px; height:36px; border:4px solid #d1fae5; border-top-color:#10B981; border-radius:50%; animation:sp 1s linear infinite; margin:0 auto 10px; }
+@keyframes sp { to { transform:rotate(360deg); } }
+@media print {
+  body { background:#fff !important; }
+  .no-print { display:none !important; }
+  .card { box-shadow:none; }
+  .payslip { box-shadow:none; padding:0; }
+  @page { size:A4 portrait; margin:8mm; }
+}
+</style>
+</head>
+<body class="role-employee">
+<div class="wrap">
+  <header>
+    <a href="homepage.html" class="back no-print">← 返回首頁</a>
+    <h1>🏰 Kidcastle 員工薪資查詢</h1>
+    <div class="sub">Employee Self-Service · Payslip Lookup</div>
+  </header>
+
+  <!-- Login form -->
+  <div class="card no-print" id="loginCard">
+    <h2>🔐 員工登入</h2>
+    <p style="font-size:13px;color:#64748b;margin-bottom:14px;">請輸入您的身份證字號與密碼，僅能查詢自己的薪資資料。</p>
+    <div class="alert error" id="errMsg">⚠ <span id="errText"></span></div>
+    <div class="field">
+      <label>身份證字號 ID Number</label>
+      <input type="text" id="empId" placeholder="例如：A123456789" autocomplete="username" autocapitalize="characters">
+    </div>
+    <div class="field">
+      <label>登入密碼 Password</label>
+      <input type="password" id="empPwd" placeholder="首次登入：與身份證字號相同" autocomplete="current-password">
+    </div>
+    <button class="btn" id="btnLogin" onclick="doLogin()">🔍 查詢薪資</button>
+    <p style="margin-top:12px;font-size:12px;color:#94a3b8;">第一次登入：帳號與密碼都是您的身份證字號，登入後請設定新密碼。忘記密碼？請聯絡學校老闆協助重置。</p>
+  </div>
+
+  <!-- 首次登入：強制設定新密碼 -->
+  <div class="card no-print" id="setPwdCard" style="display:none;">
+    <h2>🔐 首次登入：請設定新密碼</h2>
+    <p style="font-size:13px;color:#92400E;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+      您目前的密碼是身份證字號。為了保護您的薪資資料，請先設定一組新密碼，之後登入請使用新密碼。
+    </p>
+    <div class="alert error" id="setPwdErr">⚠ <span id="setPwdErrText"></span></div>
+    <div class="field">
+      <label>新密碼 New Password（至少 6 碼）</label>
+      <input type="password" id="newPwd" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>確認新密碼 Confirm</label>
+      <input type="password" id="newPwd2" autocomplete="new-password">
+    </div>
+    <button class="btn" id="btnSetPwd" onclick="saveNewPassword()">💾 儲存新密碼並查詢薪資</button>
+  </div>
+
+  <!-- Loading state -->
+  <div class="card no-print" id="loadingCard" style="display:none;">
+    <div class="loading">
+      <div class="spin"></div>
+      <div>正在從雲端讀取薪資資料…</div>
+    </div>
+  </div>
+
+  <!-- Payslip view -->
+  <div id="payslipCard" style="display:none;">
+    <div class="card no-print">
+      <div class="toolbar">
+        <select id="monthSel" onchange="renderPayslip()"></select>
+        <button class="print" onclick="window.print()">🖨 列印 / 存PDF</button>
+        <button class="logout" onclick="doLogout()">登出</button>
+      </div>
+    </div>
+    <div class="payslip" id="payslip"></div>
+  </div>
+</div>
+
+<script>
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxipSVJFWZTjy5Kw8JcHYukt9NLPY2p2Z88hNOV-sIe1M82wY1SsGYFXjrRr6sfXYc/exec';
+let DATA = null;
+let currentEmp = null;
+// 公式參數：與 index.html／Formula_Settings.html 相同，雲端 DATA.formulaConfig 有設定時以雲端為準
+const FORMULA_DEFAULTS = { OT_RATE: 180, PAY_RATE: 180, LEAVE_RATE: 133, LATE_FEE: 100,
+  ATT_REQUIRE_NO_LEAVE: true, ATT_REQUIRE_NO_LATE: true, UNLOCK_DAY: 17,
+  KC_WRITING_RATE: 40, PT_TEACH_RATE: 550, PT_ASSIST_RATE: 400,
+  GRADE_A: 400, GRADE_B: 500, GRADE_C: 600, GRADE_D: 700 };
+function FC(k) {
+  const c = DATA && DATA.formulaConfig;
+  if (c && c[k] !== undefined && c[k] !== null && c[k] !== '') return c[k];
+  return FORMULA_DEFAULTS[k];
+}
+const $ = id => document.getElementById(id);
+
+function showErr(msg) {
+  $('errText').textContent = msg;
+  $('errMsg').classList.add('show');
+}
+function hideErr() { $('errMsg').classList.remove('show'); }
+
+async function cloudGet(action) {
+  const url = CLOUD_URL + '?action=' + encodeURIComponent(action) + '&_=' + Date.now();
+  const r = await fetch(url, { method:'GET', cache:'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端錯誤');
+  return j;
+}
+
+async function cloudPost(action, payload) {
+  const r = await fetch(CLOUD_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // 避免 CORS 預檢
+    body: JSON.stringify(Object.assign({ action }, payload || {})),
+    redirect: 'follow'
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端錯誤');
+  return j;
+}
+
+// 首次登入判斷：密碼仍是身份證字號（或員工編號）＝初始密碼
+function isInitialPassword(emp, pwd) {
+  const p = String(pwd || '').trim().toLowerCase();
+  if (!p) return false;
+  const idNo = String(emp['身份證字號'] || '').trim().toLowerCase();
+  const eid  = String(emp['員工編號'] || '').trim().toLowerCase();
+  return (idNo && p === idNo) || (eid && p === eid);
+}
+
+let _loginPwd = '';
+function showPayslipView() {
+  populateMonth();
+  $('loadingCard').style.display = 'none';
+  $('setPwdCard').style.display = 'none';
+  $('payslipCard').style.display = 'block';
+  renderPayslip();
+}
+
+async function saveNewPassword() {
+  const nw = $('newPwd').value;
+  const cf = $('newPwd2').value;
+  const err = m => { $('setPwdErrText').textContent = m; $('setPwdErr').classList.add('show'); };
+  $('setPwdErr').classList.remove('show');
+  if (!nw || !cf) return err('請輸入新密碼兩次');
+  if (nw.length < 6) return err('新密碼至少 6 碼');
+  if (nw !== cf) return err('兩次輸入的新密碼不一致');
+  if (isInitialPassword(currentEmp, nw)) return err('新密碼不能是身份證字號或員工編號');
+  $('btnSetPwd').disabled = true;
+  $('btnSetPwd').textContent = '儲存中…';
+  try {
+    // 重新讀取最新雲端資料，只改自己的「登入密碼」再寫回，避免覆蓋別人剛存的資料
+    const fresh = (await cloudGet('read')).data || {};
+    const idNo = String(currentEmp['身份證字號'] || '').trim().toUpperCase();
+    const me = (fresh.employees || []).find(e => String(e['身份證字號'] || '').trim().toUpperCase() === idNo);
+    if (!me) throw new Error('找不到您的員工資料，請聯絡老闆');
+    if (String(me['登入密碼'] || '').toLowerCase() !== _loginPwd.toLowerCase()) {
+      throw new Error('密碼已在其他地方被修改，請重新登入');
+    }
+    me['登入密碼'] = nw;
+    await cloudPost('write', { data: fresh });
+    try {
+      await cloudPost('append_log', { entry: { time: new Date().toLocaleString('zh-TW', { hour12: false }).replace(/\//g, '-'),
+        user: me['員工姓名'], text: me['員工姓名'] + ' 首次登入，已設定新密碼' } });
+    } catch (_) {}
+    DATA = fresh;
+    currentEmp = me;
+    _loginPwd = nw;
+    $('newPwd').value = ''; $('newPwd2').value = '';
+    showPayslipView();
+  } catch (e) {
+    err(e.message);
+  } finally {
+    $('btnSetPwd').disabled = false;
+    $('btnSetPwd').textContent = '💾 儲存新密碼並查詢薪資';
+  }
+}
+
+async function doLogin() {
+  const idNo = ($('empId').value || '').trim().toUpperCase();
+  const pwd = ($('empPwd').value || '').trim();
+  if (!idNo) { showErr('請輸入身份證字號'); $('empId').focus(); return; }
+  if (!pwd) { showErr('請輸入密碼'); $('empPwd').focus(); return; }
+  hideErr();
+  $('btnLogin').disabled = true;
+  $('btnLogin').textContent = '驗證中…';
+  $('loginCard').style.display = 'none';
+  $('loadingCard').style.display = 'block';
+  try {
+    const j = await cloudGet('read');
+    DATA = j.data || {};
+    const emp = (DATA.employees || []).find(e =>
+      String(e['身份證字號'] || '').trim().toUpperCase() === idNo
+    );
+    if (!emp) throw new Error('找不到此身份證字號，請確認輸入是否正確');
+    if (emp['在職狀態'] !== '在職') throw new Error('此員工目前非在職狀態，如需查詢請聯絡老闆');
+    const stored = String(emp['登入密碼'] || '');
+    if (pwd !== stored && pwd.toLowerCase() !== stored.toLowerCase()) {
+      throw new Error('密碼錯誤');
+    }
+    currentEmp = emp;
+    _loginPwd = stored;
+    if (isInitialPassword(emp, pwd)) {
+      // 首次登入：先設定新密碼才能看薪資條
+      $('loadingCard').style.display = 'none';
+      $('setPwdCard').style.display = 'block';
+      setTimeout(() => $('newPwd').focus(), 50);
+      return;
+    }
+    showPayslipView();
+  } catch (e) {
+    $('loadingCard').style.display = 'none';
+    $('loginCard').style.display = 'block';
+    $('btnLogin').disabled = false;
+    $('btnLogin').textContent = '🔍 查詢薪資';
+    showErr(e.message);
+  }
+}
+
+function doLogout() {
+  currentEmp = null;
+  DATA = null;
+  $('payslipCard').style.display = 'none';
+  $('setPwdCard').style.display = 'none';
+  $('loginCard').style.display = 'block';
+  if (window.resetPwdEyes) resetPwdEyes();
+  $('empPwd').value = '';
+  $('btnLogin').disabled = false;
+  $('btnLogin').textContent = '🔍 查詢薪資';
+  hideErr();
+}
+
+// 計算「本月」的民國年月（YYYMM 格式）
+function getCurrentMonthROC() {
+  const d = new Date();
+  const rocYear = d.getFullYear() - 1911;
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${rocYear}${mm}`;
+}
+// 當月薪資須等到每月17日（含）之後才開放查閱，17日前該月選項直接隱藏（過去月份不受影響）
+function unlockDay() { return Number(FC('UNLOCK_DAY')) || 17; }
+function isPayslipMonthUnlocked(month) {
+  if (String(month) !== getCurrentMonthROC()) return true;
+  return new Date().getDate() >= unlockDay();
+}
+
+function populateMonth() {
+  const myEid = currentEmp['員工編號'];
+  const months = [...new Set((DATA.salary || [])
+    .filter(s => s['員工編號'] === myEid)
+    .map(s => String(s['月份'])))]
+    .filter(isPayslipMonthUnlocked)
+    .sort().reverse();
+  const sel = $('monthSel');
+  if (!months.length) {
+    sel.innerHTML = `<option value="">尚無可查閱的薪資（本月薪資將於每月${unlockDay()}日開放查閱）</option>`;
+  } else {
+    sel.innerHTML = months.map(m => `<option value="${m}">${m} (民國${m.slice(0,3)}年${m.slice(3,5)}月)</option>`).join('');
+  }
+}
+
+// 其他津貼有逐項明細時，每個津貼名稱各佔一行
+function itemizedRows(label, total, items) {
+  const list = Array.isArray(items) ? items.filter(it => it && (it.name || Number(it.amount))) : [];
+  const sum = list.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  if (!list.length || sum !== (Number(total) || 0)) return [[label, total]];
+  const base = label.split(' ')[0];
+  return list.map(it => [`${base}・${String(it.name || '未命名').replace(/</g, '&lt;')}`, Number(it.amount) || 0]);
+}
+
+function fmtNT(n) { return (Number(n)||0).toLocaleString('en-US'); }
+
+function findSalary(eid, month) {
+  return (DATA.salary || []).find(s => s['員工編號'] === eid && String(s['月份']) === String(month));
+}
+
+function renderPayslip() {
+  const emp = currentEmp;
+  const month = $('monthSel').value;
+  if (!month) {
+    $('payslip').innerHTML = `<div class="loading"><div>尚無可查閱的薪資（本月薪資將於每月${unlockDay()}日開放查閱）</div></div>`;
+    return;
+  }
+  const sal = findSalary(emp['員工編號'], month) || {};
+  // 全勤：主管可手動指定「全勤／非全勤」，留空＝自動（無請假、無遲到）
+  const attOv = String(sal['全勤'] || '');
+  const noLL = (!FC('ATT_REQUIRE_NO_LEAVE') || (Number(sal['請假時數'])||0)===0) && (!FC('ATT_REQUIRE_NO_LATE') || (Number(sal['遲到次數'])||0)===0);
+  const attBonus = attOv === '全勤' ? (Number(emp['全勤獎金'])||0)
+                 : attOv === '非全勤' ? 0
+                 : (noLL ? (Number(emp['全勤獎金'])||0) : 0);
+  // OT pay
+  const base = Number(emp['底薪'])||0;
+  const OT_RATE = Number(FC('OT_RATE')); // 加班費率（公式設定頁可改）
+  const hourly = OT_RATE;
+  const otH = Number(sal['加班時數'])||0;
+  const otPay = Math.round(otH * OT_RATE);
+  const leaveH = Number(sal['請假時數'])||0;
+  const LEAVE_RATE = Number(FC('LEAVE_RATE')); // 請假扣薪（公式設定頁可改，預設 133 元/小時）
+  const leaveD = Math.round(leaveH * LEAVE_RATE);
+  const lateCnt = Number(sal['遲到次數'])||0;
+  const lateD = lateCnt * Number(FC('LATE_FEE'));
+
+  const fixed = [
+    ['底薪 Base', emp['底薪']],
+    ['全勤獎金 Attendance', attBonus],
+    ['年資津貼 Seniority', emp['年資津貼']],
+    ['主管津貼 Manager', emp['主管津貼']],
+    ['分校人數超額獎金 Excess', emp['分校人數超額獎金']],
+    ['美語津貼 English', emp['美語津貼']],
+    ['英文輔導津貼 Tutoring', emp['英文輔導津貼']],
+    ['數學班津貼 Math', emp['數學班津貼']],
+    ['混班/混校津貼 Mixed', emp['混班/混校津貼']],
+    ['帶班人數津貼 Class', emp['帶班人數津貼']],
+    ...itemizedRows('其他津貼 Others', emp['其他津貼'], emp['其他津貼明細']),
+    // 美語部項目（值為 0 時自動隱藏）
+    [`帶班數津貼 Class Teaching${emp['帶班班別'] ? '（' + String(emp['帶班班別']).replace(/</g, '&lt;') + '）' : ''}`, emp['帶班數津貼'] != null ? emp['帶班數津貼'] : emp['帶班數薪資']],
+    [`美語帶班人數津貼（${Number(emp['美語帶班人數']) || 0}人）`, emp['美語帶班人數津貼']],
+    [`Writing 人數津貼（${Number(emp['Writing人數']) || 0}人 × ${FC('KC_WRITING_RATE')}）`, emp['Writing人數津貼']],
+    ['奇趣線上教材 Online Materials', emp['奇趣線上教材']],
+    ['行政 Admin', emp['美語部行政']]
+  ];
+  const subA = fixed.reduce((s,[,v])=>s+(Number(v)||0), 0);
+
+  const variable = [
+    ['加班費 OT Pay', otPay],
+    [`支薪金額 Paid Hours Pay (×${FC('PAY_RATE')}/hr)`, Math.round((Number(sal['支薪時數'])||0) * Number(FC('PAY_RATE')))],
+    ['考試津貼 Exam Allowance', sal['考試津貼']],
+    ['預繳津貼 Prepay Allowance', sal['預繳津貼']],
+    // 美語部授課：時數 × 職等時薪（A/B/C/D）
+    ...[['VWriting','V Writing'],['資優美語','資優美語'],['一對一','一對一'],['BReading','B Reading（閱讀班）'],['輔導補課','輔導補課']].map(([k, label]) => {
+      const g = String(emp['職等'] || ''), rate = ['A','B','C','D'].includes(g) ? Number(FC('GRADE_' + g)) : 0;
+      const h = Number(sal[k + '時數']) || 0;
+      return [`${label}（${h}時 × ${g || '未設職等'} ${rate}）`, Math.round(h * rate)];
+    }),
+    // 兼職美語：時數 × 時薪（員工資料有填時薪就用員工的，沒填用公式設定頁預設）
+    ...(() => {
+      // 舊名稱（自行授課／協助外師）的資料也照算，老闆端開啟系統後會自動改成新名稱
+      const pick = (o, a, b) => Number(o[a]) || Number(o[b]) || 0;
+      const tR = pick(emp, '美語授課時薪', '自行授課時薪') || Number(FC('PT_TEACH_RATE'));
+      const aR = pick(emp, '與外師共同上課時薪', '協助外師時薪') || Number(FC('PT_ASSIST_RATE'));
+      const tH = pick(sal, '兼職美語授課時數', '美語授課時數') || pick(sal, '自行授課時數', ''), aH = pick(sal, '與外師共同上課時數', '協助外師時數');
+      return [[`美語授課津貼（${tH}時 × ${tR}）`, Math.round(tH * tR)],
+              [`與外師共同上課津貼（${aH}時 × ${aR}）`, Math.round(aH * aR)]];
+    })(),
+    ['獎金 Bonus', sal['獎金']],
+    // 以下為人數資訊欄，不計入金額
+    ['安親人數 (人)', sal['安親人數']],
+    ['混班數', sal['混班數']]
+  ];
+  const COUNT_ROWS = ['安親人數 (人)','混班數'];
+  const subB = variable.filter(([k]) => !COUNT_ROWS.includes(k)).reduce((s,[,v])=>s+(Number(v)||0), 0);
+
+  const deductions = [
+    ['勞保自付 Labor Ins', emp['勞保自付']],
+    ['健保自付 Health Ins', emp['健保自付']],
+    ['請假時數 Leave Hours', leaveH],
+    [`請假扣款 Leave Deduct (×${LEAVE_RATE}/hr)`, leaveD],
+    ['遲到扣款 Late', lateD],
+    ['扣款 Deduction', sal['扣款']]
+  ];
+  const subC = deductions.filter(([k])=>!k.startsWith('請假時數'))
+    .reduce((s,[,v])=>s+(Number(v)||0), 0);
+  const subD = Number(emp['現金給付'])||0;
+  const net = subA + subB - subC - subD;
+  const today = new Date().toISOString().substr(0,10);
+
+  const renderRows = items => items.map(([k,v]) => {
+    const num = Number(v)||0;
+    return `<div class="ps-row${num===0?' zero':''}"><span class="lbl">${k}</span><span class="val">${fmtNT(num)}</span></div>`;
+  }).join('');
+
+  const isFixedZero = fixed.every(([,v])=>(Number(v)||0)===0);
+  const isVarZero   = variable.every(([,v])=>(Number(v)||0)===0);
+  const isDedZero   = deductions.every(([,v])=>(Number(v)||0)===0);
+  const cashClass   = subD===0 ? ' all-zero' : '';
+
+  $('payslip').innerHTML = `
+    <div class="ps-header">
+      <h2>Kidcastle ${emp['校區']} — 薪資條</h2>
+      <div class="sub">Salary Payslip · ${month} (民國${month.slice(0,3)}年${month.slice(3,5)}月) · 查詢日期 ${today}</div>
+    </div>
+    <div class="ps-info">
+      <div class="it"><div class="k">員工姓名</div><div class="v">${emp['員工姓名']||''}${emp['英文姓名']?' ('+emp['英文姓名']+')':''}</div></div>
+      <div class="it"><div class="k">員工編號</div><div class="v">${emp['員工編號']}</div></div>
+      <div class="it"><div class="k">職位</div><div class="v">${emp['職位']||'—'}</div></div>
+      <div class="it"><div class="k">校區</div><div class="v">${emp['校區']}</div></div>
+      <div class="it"><div class="k">到職日</div><div class="v">${emp['到職日']||'-'}</div></div>
+      <div class="it"><div class="k">在職狀態</div><div class="v">${emp['在職狀態']}</div></div>
+    </div>
+    <div class="ps-section-h">
+      <div class="${isFixedZero?'all-zero':''}">① 約定薪資結構 Fixed</div>
+      <div class="${isVarZero?'all-zero':''}">② 非固定支付 Variable</div>
+      <div class="deduct ${isDedZero?'all-zero':''}">③ 應代扣項目 Deductions</div>
+    </div>
+    <div class="ps-rows">
+      <div class="ps-col${isFixedZero?' all-zero':''}">${renderRows(fixed)}</div>
+      <div class="ps-col${isVarZero?' all-zero':''}">${renderRows(variable)}</div>
+      <div class="ps-col deduct${isDedZero?' all-zero':''}">${renderRows(deductions)}</div>
+    </div>
+    <div class="ps-subtotal">
+      <div class="${isFixedZero?'all-zero':''}"><span>小計 (A)</span><span class="val">${fmtNT(subA)}</span></div>
+      <div class="${isVarZero?'all-zero':''}"><span>小計 (B)</span><span class="val">${fmtNT(subB)}</span></div>
+      <div class="deduct ${isDedZero?'all-zero':''}"><span>小計 (C)</span><span class="val">${fmtNT(subC)}</span></div>
+    </div>
+    <div class="ps-cash-row${cashClass}">
+      <div class="lbl">小計 (D) · 現金給付 Cash Payment</div>
+      <div class="val">NT$ ${fmtNT(subD)}</div>
+    </div>
+    <div class="ps-net">
+      <div class="lbl">實領金額 Net Salary</div>
+      <div class="val">NT$ ${fmtNT(net)}</div>
+    </div>
+    ${renderNotes(emp, sal)}
+  `;
+}
+
+// 備註欄：其他津貼內容 + 本月/員工備註
+function renderNotes(emp, sal) {
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const items = Array.isArray(emp['其他津貼明細']) ? emp['其他津貼明細'].filter(it => it && (it.name || Number(it.amount))) : [];
+  let otherLines = items.map(it => {
+    const n = String(it.note || '').trim();
+    return `${it.name || '未命名'} NT$ ${fmtNT(it.amount || 0)}${n ? '（' + n + '）' : ''}`;
+  });
+  if (!otherLines.length && Number(emp['其他津貼'])) otherLines = [`其他津貼 NT$ ${fmtNT(emp['其他津貼'])}`];
+  const note = String((sal && sal['備註']) || '').trim() || String(emp['備註'] || '').trim();
+  if (!note && !otherLines.length) return '';
+  const otherHtml = otherLines.length
+    ? `<div style="font-weight:700;color:#854D0E;">【其他津貼】</div>` + otherLines.map(l => `<div>・${esc(l)}</div>`).join('')
+    : '';
+  const noteHtml = note ? `<div${otherHtml ? ' style="margin-top:6px;"' : ''}>${esc(note).replace(/\n/g,'<br>')}</div>` : '';
+  return `<div class="ps-notes"><div class="ps-notes-h">📝 備註 Notes</div><div class="ps-notes-body">${otherHtml}${noteHtml}</div></div>`;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (document.activeElement.id === 'empId' || document.activeElement.id === 'empPwd')) {
+    e.preventDefault();
+    doLogin();
+  }
+});
+</script>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261022V2010</div>
+<!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
+<style>
+  .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }
+  .pwd-eye-wrap > input { padding-right: 40px !important; box-sizing: border-box; }
+  .pwd-eye-wrap.block { display: block; width: 100%; }
+  .pwd-eye-wrap.block > input { width: 100% !important; }
+  .pwd-eye-wrap.inline { display: inline-block; }
+  .pwd-eye-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; cursor: pointer; font-size: 16px; line-height: 1;
+    padding: 6px 7px; border-radius: 6px; opacity: .7; }
+  .pwd-eye-btn:hover { opacity: 1; background: rgba(15,23,42,.06); }
+  .pwd-eye-btn.on { opacity: 1; }
+  @media print { .pwd-eye-btn { display: none !important; } }
+</style>
+<script>
+(function () {
+  function isEyeTarget(el) {
+    return el && el.tagName === 'INPUT' && !el.dataset.noEye && !el.closest('.pwd-eye-wrap') &&
+      (el.type === 'password' || el.dataset.pwd === '1');
+  }
+  function addEye(input) {
+    if (!isEyeTarget(input)) return;
+    if (input.dataset.pwd === '1') input.type = 'password';
+    const wrap = document.createElement('span');
+    const cs = getComputedStyle(input);
+    const rendered = input.offsetWidth > 0;
+    const parentW = input.parentElement ? input.parentElement.clientWidth : 0;
+    const full = rendered ? (input.offsetWidth >= parentW - 6) : (cs.width.endsWith('%') || cs.display === 'block');
+    wrap.className = 'pwd-eye-wrap ' + (full ? 'block' : 'inline');
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pwd-eye-btn no-print';
+    btn.textContent = '👁';
+    btn.title = btn.ariaLabel = '顯示密碼';
+    btn.tabIndex = -1;
+    btn.addEventListener('mousedown', e => e.preventDefault());   // 不讓輸入框失去焦點
+    btn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+      btn.title = btn.ariaLabel = show ? '隱藏密碼' : '顯示密碼';
+      btn.classList.toggle('on', show);
+    });
+    wrap.appendChild(btn);
+  }
+  // 把畫面上所有密碼欄位恢復成「隱藏」（開啟密碼視窗、登出時呼叫）
+  window.resetPwdEyes = function (root) {
+    (root || document).querySelectorAll('.pwd-eye-wrap').forEach(w => {
+      const i = w.querySelector('input'), b = w.querySelector('.pwd-eye-btn');
+      if (i) i.type = 'password';
+      if (b) { b.textContent = '👁'; b.title = b.ariaLabel = '顯示密碼'; b.classList.remove('on'); }
+    });
+  };
+  function scan(root) {
+    if (!root || !root.querySelectorAll) return;
+    if (isEyeTarget(root)) addEye(root);
+    root.querySelectorAll('input[type="password"], input[data-pwd="1"]').forEach(addEye);
+  }
+  function start() {
+    scan(document.body);
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(scan)))
+      .observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+</body>
+
+</html>

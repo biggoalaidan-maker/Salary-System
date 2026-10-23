@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kidcastle 到職日修正工具</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",Arial,sans-serif; }
+body { background:linear-gradient(135deg,#667eea,#764ba2); min-height:100vh; color:#1e293b; padding:24px 16px; }
+.wrap { max-width:980px; margin:0 auto; }
+header { text-align:center; color:#fff; margin-bottom:22px; }
+header h1 { font-size:26px; text-shadow:0 2px 8px rgba(0,0,0,.2); margin-bottom:6px; }
+header .sub { font-size:14px; opacity:.9; }
+.card { background:#fff; border-radius:16px; padding:22px; box-shadow:0 16px 40px rgba(0,0,0,.18); margin-bottom:18px; }
+.card h2 { font-size:18px; color:#334155; margin-bottom:12px; border-bottom:2px solid #e2e8f0; padding-bottom:8px; }
+.btn { padding:11px 22px; border:none; border-radius:9px; font-weight:700; font-size:14px; cursor:pointer; }
+.btn.primary { background:linear-gradient(135deg,#10B981,#059669); color:#fff; }
+.btn.warn { background:linear-gradient(135deg,#F59E0B,#B45309); color:#fff; }
+.btn.cancel { background:#94a3b8; color:#fff; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.18); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { background:#1e293b; color:#fff; padding:9px 11px; text-align:left; font-weight:700; }
+tbody td { padding:7px 11px; border-bottom:1px solid #e2e8f0; }
+tbody tr:nth-child(even) td { background:#f8fafc; }
+.eid { font-family:'Courier New',monospace; font-weight:700; background:#FEF3C7; color:#92400E; padding:3px 8px; border-radius:6px; font-size:12px; }
+.campus-ta { background:#DBEAFE; color:#1E40AF; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; }
+.campus-zj { background:#FFF1E5; color:#B45309; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; }
+.old-date { color:#94a3b8; text-decoration:line-through; }
+.new-date { color:#059669; font-weight:700; }
+.unchanged { color:#94a3b8; }
+.alert { padding:11px 14px; border-radius:9px; font-size:13px; margin-bottom:14px; line-height:1.6; }
+.alert.info { background:#EFF6FF; color:#1E40AF; border-left:3px solid #3B82F6; }
+.alert.warn { background:#FEF3C7; color:#92400E; border-left:3px solid #F59E0B; }
+.alert.ok { background:#ECFDF5; color:#065F46; border-left:3px solid #10B981; }
+.alert.err { background:#FEF2F2; color:#991B1B; border-left:3px solid #DC2626; }
+.status { font-size:12px; color:#64748b; margin-top:8px; }
+.actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+.muted { color:#64748b; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📅 Kidcastle 到職日修正工具</h1>
+    <div class="sub">One-time hire-date migration · 從紙本表單匯入 → 雲端</div>
+  </header>
+
+  <div class="card">
+    <h2>📋 待更新清單（從圖片擷取）</h2>
+    <div class="alert info">
+      本工具會比對雲端現有員工資料，依「員工姓名」匹配後，把下列教師的「到職日」更新為從紙本擷取的正確日期。<br>
+      民國年已自動換算為西元年（民國 + 1911）。
+    </div>
+    <table>
+      <thead>
+        <tr><th>校區</th><th>姓名</th><th>員工編號</th><th>原日期</th><th>→</th><th>新日期</th><th>來源</th></tr>
+      </thead>
+      <tbody id="previewTbl"><tr><td colspan="7" class="muted" style="text-align:center;padding:20px;">尚未載入雲端資料</td></tr></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn primary" id="btnLoad" onclick="loadAndPreview()">🔄 1. 載入雲端資料並預覽</button>
+      <button class="btn warn" id="btnApply" onclick="applyUpdates()" disabled>✏ 2. 寫入雲端（不可復原）</button>
+    </div>
+    <div class="status" id="status">等待操作…</div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>📖 民國 → 西元 換算對照</h2>
+    <div class="muted" style="line-height:1.8;">
+      民國 91 = 2002 · 民國 93 = 2004 · 民國 95 = 2006 · 民國 98 = 2009 · 民國 104 = 2015 ·
+      民國 108 = 2019 · 民國 110 = 2021 · 民國 111 = 2022 · 民國 112 = 2023 · 民國 113 = 2024 ·
+      民國 114 = 2025 · 民國 115 = 2026
+    </div>
+  </div>
+</div>
+
+<script>
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxipSVJFWZTjy5Kw8JcHYukt9NLPY2p2Z88hNOV-sIe1M82wY1SsGYFXjrRr6sfXYc/exec';
+
+// 來源: 健保加保日資料（被保險人 = 保險對象，共 28 筆）
+// 民國 + 1911 = 西元；OCR 變字（蔡銘孝/蔡明孝、胡暄曼/胡瑄曼）以雲端官方姓名為主
+const HIRE_DATES = [
+  // ── 大立昇美語（同安 TA）──
+  { name:'謝明學', date:'2016-07-01', src:'加保日 105/07/01' },
+  { name:'蕭宜帆', date:'2022-03-01', src:'加保日 111/03/01' },
+  { name:'廖繹雯', date:'2022-03-14', src:'加保日 111/03/14' },
+  { name:'呂理平', date:'2011-04-25', src:'加保日 100/04/25（新員工）' },
+  { name:'呂學龍', date:'2022-02-14', src:'加保日 111/02/14' },
+  { name:'陳允謙', date:'2024-11-14', src:'加保日 113/11/14' },
+  { name:'蔡明孝', date:'2023-08-08', src:'加保日 112/08/08（蔡銘孝）' },
+  { name:'吳芳芝', date:'2016-01-01', src:'加保日 105/01/01' },
+  // ── 同安分班 ──
+  { name:'陳正芬', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
+  { name:'張濠祥', date:'2026-06-17', src:'加保日 115/06/17（新員工）' },
+  { name:'陳敬翔', date:'2025-08-18', src:'加保日 114/08/18' },
+  { name:'廖月櫻', date:'2024-10-01', src:'加保日 113/10/01' },
+  { name:'郭子綺', date:'2024-10-01', src:'加保日 113/10/01' },
+  { name:'周芯薇', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
+  { name:'陳渝潔', date:'2024-10-01', src:'加保日 113/10/01' },
+  { name:'林歆怡', date:'2026-04-22', src:'加保日 115/04/22（新員工）' },
+  { name:'翁麗美', date:'2024-10-01', src:'加保日 113/10/01' },
+  // ── 莊敬分班（莊敬 ZJ）──
+  { name:'蕭羽儂', date:'2022-09-12', src:'加保日 111/09/12' },
+  { name:'吳湘晴', date:'2023-11-01', src:'加保日 112/11/01' },
+  { name:'洪子彤', date:'2023-10-26', src:'加保日 112/10/26' },
+  { name:'呂學宗', date:'2022-04-25', src:'加保日 111/04/25（新員工）' },
+  { name:'吳鈺蘋', date:'2024-12-23', src:'加保日 113/12/23' },
+  { name:'陳宇薇', date:'2019-07-01', src:'加保日 108/07/01（新員工）' },
+  { name:'陳詩佳', date:'2026-05-20', src:'加保日 115/05/20（新員工）' },
+  { name:'何宥蓉', date:'2025-09-12', src:'加保日 114/09/12' },
+  { name:'胡瑄曼', date:'2025-08-20', src:'加保日 114/08/20（胡暄曼）' },
+  { name:'何革融', date:'2025-10-01', src:'加保日 114/10/01' },
+  { name:'游晏慈', date:'2025-09-11', src:'加保日 114/09/11' }
+];
+
+let cloudData = null;
+let plannedUpdates = []; // [{empId, name, campus, old, new, src}]
+
+const $ = id => document.getElementById(id);
+
+function setStatus(t, type) {
+  $('status').textContent = t;
+  if (type) $('msg').innerHTML = `<div class="alert ${type}">${t}</div>`;
+}
+
+async function cloudGet() {
+  const r = await fetch(CLOUD_URL + '?action=read&_=' + Date.now(), { cache:'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端錯誤');
+  return j.data || {};
+}
+
+async function cloudPut(data) {
+  const r = await fetch(CLOUD_URL, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action:'write', data })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端寫入錯誤');
+  return j;
+}
+
+async function cloudLog(entry) {
+  try {
+    await fetch(CLOUD_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'append_log', entry })
+    });
+  } catch (_) {}
+}
+
+async function loadAndPreview() {
+  $('btnLoad').disabled = true;
+  $('btnApply').disabled = true;
+  setStatus('☁ 載入雲端中…', 'info');
+  try {
+    cloudData = await cloudGet();
+    const employees = cloudData.employees || [];
+    plannedUpdates = [];
+    const notFound = [];
+
+    for (const u of HIRE_DATES) {
+      const emp = employees.find(e => String(e['員工姓名']||'').trim() === u.name);
+      if (!emp) { notFound.push(u.name); continue; }
+      const oldDate = String(emp['到職日'] || '').slice(0, 10);
+      if (oldDate === u.date) {
+        plannedUpdates.push({ empId:emp['員工編號'], name:emp['員工姓名'], campus:emp['校區'], old:oldDate, new:u.date, src:u.src, unchanged:true });
+      } else {
+        plannedUpdates.push({ empId:emp['員工編號'], name:emp['員工姓名'], campus:emp['校區'], old:oldDate, new:u.date, src:u.src, unchanged:false });
+      }
+    }
+
+    // Render preview
+    const tbody = $('previewTbl');
+    if (!plannedUpdates.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:20px;">⚠ 雲端找不到任何匹配的員工姓名</td></tr>';
+    } else {
+      let html = '';
+      for (const p of plannedUpdates) {
+        const ccls = p.campus === '同安' ? 'campus-ta' : 'campus-zj';
+        const newCls = p.unchanged ? 'unchanged' : 'new-date';
+        const arrow = p.unchanged ? '＝' : '→';
+        html += `<tr>
+          <td><span class="${ccls}">${p.campus||'—'}</span></td>
+          <td><b>${p.name}</b></td>
+          <td><span class="eid">${p.empId||'—'}</span></td>
+          <td class="old-date">${p.old||'(空)'}</td>
+          <td style="text-align:center;color:#64748b;">${arrow}</td>
+          <td class="${newCls}">${p.new}</td>
+          <td class="muted">${p.src}</td>
+        </tr>`;
+      }
+      tbody.innerHTML = html;
+    }
+
+    const changeCount = plannedUpdates.filter(p => !p.unchanged).length;
+    const unchangedCount = plannedUpdates.filter(p => p.unchanged).length;
+    let msgHtml = `<div class="alert ok">✓ 已載入 ${employees.length} 位員工。將更新 <b>${changeCount}</b> 筆（另有 <b>${unchangedCount}</b> 筆已是正確日期、無需變動）。</div>`;
+    if (notFound.length) {
+      msgHtml += `<div class="alert warn">⚠ 雲端找不到的姓名（請手動確認，可能拼字不同或尚未建檔）：<br>${notFound.join('、')}</div>`;
+    }
+    $('msg').innerHTML = msgHtml;
+    $('status').textContent = `預覽完成，${changeCount} 筆待寫入`;
+    if (changeCount > 0) $('btnApply').disabled = false;
+  } catch (e) {
+    setStatus('✗ 載入失敗: ' + e.message, 'err');
+  } finally {
+    $('btnLoad').disabled = false;
+  }
+}
+
+async function applyUpdates() {
+  const toApply = plannedUpdates.filter(p => !p.unchanged);
+  if (!toApply.length) { alert('沒有需要寫入的變更'); return; }
+  if (!confirm(`確認寫入 ${toApply.length} 筆到職日修正到雲端？此操作會立即生效。`)) return;
+
+  $('btnApply').disabled = true;
+  $('btnLoad').disabled = true;
+  setStatus('☁ 寫入雲端中…', 'info');
+
+  try {
+    const employees = cloudData.employees || [];
+    let applied = 0;
+    for (const p of toApply) {
+      const emp = employees.find(e => e['員工編號'] === p.empId);
+      if (emp) { emp['到職日'] = p.new; applied++; }
+    }
+    await cloudPut(cloudData);
+    await cloudLog({
+      ts: new Date().toISOString(),
+      who: 'HireDate_Migrate tool',
+      action: 'bulk_update_hire_date',
+      count: applied,
+      detail: toApply.map(p => `${p.name}(${p.empId}): ${p.old} → ${p.new}`).join('; ')
+    });
+    setStatus(`✓ 已成功寫入 ${applied} 筆到職日`, 'ok');
+    $('msg').innerHTML += `<div class="alert ok">✅ 完成！請打開 homepage.html → 老闆編輯員工資料 → 確認新到職日已生效。</div>`;
+  } catch (e) {
+    setStatus('✗ 寫入失敗: ' + e.message, 'err');
+    $('btnApply').disabled = false;
+    $('btnLoad').disabled = false;
+  }
+}
+</script>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261013V2045</div>
+</body>
+</html>

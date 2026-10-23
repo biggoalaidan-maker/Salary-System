@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kidcastle 薪資公式設定</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📐%3C/text%3E%3C/svg%3E">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  min-height:100vh; color:#1e293b; padding:24px 16px 90px;
+}
+.wrap { max-width:980px; margin:0 auto; }
+header { text-align:center; color:#fff; margin-bottom:20px; }
+header .back { display:inline-block; color:#fff; text-decoration:none; font-size:14px; opacity:.85; margin-bottom:8px; }
+header .back:hover { text-decoration:underline; opacity:1; }
+header h1 { font-size:28px; letter-spacing:1px; text-shadow:0 2px 8px rgba(0,0,0,.2); margin-bottom:4px; }
+header .sub { font-size:14px; opacity:.9; }
+
+/* Sticky action bar */
+.bar {
+  position:sticky; top:10px; z-index:20;
+  background:rgba(255,255,255,.97); border-radius:14px; padding:12px 16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2); margin-bottom:18px;
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+.bar .status { flex:1; min-width:200px; font-size:13px; color:#475569; }
+.bar .status b { color:#1e293b; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; margin-right:6px; }
+.pill.lock { background:#FEE2E2; color:#991B1B; }
+.pill.open { background:#DCFCE7; color:#166534; }
+.pill.dirty { background:#FEF3C7; color:#92400E; }
+.btn {
+  padding:9px 16px; border:none; border-radius:9px; font-size:13px; font-weight:700;
+  cursor:pointer; font-family:inherit; color:#fff; transition:transform .12s, opacity .15s;
+}
+.btn:hover:not(:disabled) { transform:translateY(-1px); }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.btn.unlock { background:linear-gradient(135deg,#F59E0B,#B45309); }
+.btn.save   { background:linear-gradient(135deg,#10B981,#047857); }
+.btn.ghost  { background:#f1f5f9; color:#475569; }
+.btn.print  { background:#475569; }
+
+/* Cards */
+.card {
+  background:#fff; border-radius:16px; padding:20px 22px;
+  box-shadow:0 16px 40px rgba(0,0,0,.16); margin-bottom:16px;
+}
+.card h2 {
+  font-size:17px; color:#1e293b; margin-bottom:4px;
+  display:flex; align-items:center; gap:8px;
+}
+.card h2 .no {
+  width:28px; height:28px; border-radius:8px; color:#fff; font-size:14px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--c,#4472C4);
+}
+.card .desc { font-size:12px; color:#64748b; margin-bottom:14px; padding-left:36px; }
+
+.f {
+  border:1px solid #e2e8f0; border-left:4px solid var(--c,#4472C4);
+  border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#fafbfd;
+}
+.f .name { font-weight:700; font-size:14px; color:#1e293b; margin-bottom:6px; }
+.f .name small { font-weight:400; color:#94a3b8; margin-left:6px; font-size:11px; }
+.f .expr {
+  font-size:15px; line-height:2.1; color:#334155;
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+}
+.f .expr .var { background:#EEF2FF; color:#3730A3; padding:1px 8px; border-radius:6px; font-weight:600; font-size:13px; }
+.f .expr .op { color:#94a3b8; font-weight:700; }
+.f .note { font-size:12px; color:#64748b; margin-top:6px; line-height:1.6; }
+.f .note code { background:#f1f5f9; padding:1px 5px; border-radius:4px; }
+
+input.p {
+  width:86px; padding:4px 8px; border:1.5px solid #cbd5e1; border-radius:7px;
+  font-size:15px; font-weight:700; text-align:right; font-family:Arial,sans-serif;
+  color:#0F766E; background:#fff;
+}
+input.p.wide { width:110px; text-align:left; }
+input.p:disabled { background:#f8fafc; color:#475569; border-color:#e2e8f0; cursor:not-allowed; }
+input.p:focus { outline:none; border-color:#0EA5E9; box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+input.p.changed { background:#FEF9C3; border-color:#F59E0B; color:#92400E; }
+.unit { font-size:13px; color:#64748b; }
+label.chk { display:inline-flex; align-items:center; gap:6px; font-size:14px; cursor:pointer; padding:2px 10px 2px 4px; border-radius:6px; }
+label.chk.changed { background:#FEF9C3; }
+
+/* try-it */
+.try {
+  margin-top:8px; padding:8px 10px; background:#ECFEFF; border:1px dashed #67E8F9;
+  border-radius:8px; font-size:13px; color:#0F766E;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.try input { width:70px; padding:3px 6px; border:1px solid #67E8F9; border-radius:6px; text-align:right; font-family:Arial; }
+.try select { padding:3px 6px; border:1px solid #67E8F9; border-radius:6px; font-family:inherit; }
+.try .out { font-weight:800; font-family:Arial; color:#134E4A; }
+
+/* tables */
+table.mini { border-collapse:collapse; font-size:13px; margin-top:8px; }
+table.mini th, table.mini td { padding:5px 10px; border-bottom:1px solid #e2e8f0; text-align:right; }
+table.mini th { background:#f1f5f9; color:#475569; font-weight:700; }
+table.mini td:first-child, table.mini th:first-child { text-align:left; }
+.tbl-scroll { overflow-x:auto; }
+.rm { background:#FEE2E2; color:#991B1B; border:none; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:12px; }
+.add { background:#DBEAFE; color:#1E40AF; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; font-weight:700; margin-top:8px; font-family:inherit; }
+.rm:disabled, .add:disabled { opacity:.4; cursor:not-allowed; }
+
+/* structure (read-only) */
+.struct { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.sbox { border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.7; }
+.sbox h4 { font-size:13px; margin-bottom:4px; }
+.sbox.a { background:#DBEAFE; color:#1E3A8A; }
+.sbox.b { background:#E0E7FF; color:#3730A3; }
+.sbox.c { background:#FEE2E2; color:#991B1B; }
+.sbox.d { background:#FEF3C7; color:#92400E; }
+.total {
+  margin-top:10px; padding:12px 14px; border-radius:10px;
+  background:linear-gradient(135deg,#34D399,#10B981); color:#fff;
+  font-weight:700; font-size:15px; line-height:1.8;
+}
+.ro-tag { display:inline-block; font-size:11px; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:999px; margin-left:6px; font-weight:400; }
+
+/* modal */
+.ov { position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(5px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+.ov.show { display:flex; }
+.modal { background:#fff; border-radius:18px; width:100%; max-width:400px; overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.4); }
+.modal .hd { padding:16px 20px; color:#fff; background:linear-gradient(135deg,#F59E0B,#B45309); font-weight:700; }
+.modal .bd { padding:18px 20px; }
+.modal .bd input { width:100%; padding:10px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:14px; font-family:inherit; }
+.modal .err { color:#991B1B; font-size:12px; margin-top:8px; min-height:16px; }
+.modal .ft { padding:12px 20px 16px; display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; }
+
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:#1a202c; color:#fff; padding:12px 22px; border-radius:999px;
+  font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:all .25s; z-index:60;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.error { background:#DC2626; } .toast.success { background:#10B981; }
+
+@media (max-width:720px) {
+  .struct { grid-template-columns:1fr; }
+  .card .desc { padding-left:0; }
+  .f .expr { font-size:14px; }
+}
+@media print {
+  body { background:#fff !important; padding:0; }
+  .bar, header .back, .try, .add, .rm { display:none !important; }
+  header { color:#1e293b; }
+  .card { box-shadow:none; border:1px solid #e2e8f0; break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="index.html" class="back">← 返回薪資系統</a>
+    <h1>📐 薪資公式設定</h1>
+    <div class="sub">Formula Settings · 所有薪資計算公式與參數，修改後同步到雲端，兩校立即套用</div>
+  </header>
+
+  <div class="bar">
+    <div class="status" id="status">☁ 正在從雲端讀取設定…</div>
+    <button class="btn unlock" id="btnUnlock" onclick="openUnlock()">🔓 解鎖編輯</button>
+    <button class="btn ghost" id="btnReset" onclick="resetDefaults()" disabled>↺ 恢復預設值</button>
+    <button class="btn ghost" id="btnUndo" onclick="undoChanges()" disabled>↶ 取消修改</button>
+    <button class="btn save" id="btnSave" onclick="saveCloud()" disabled>💾 儲存到雲端</button>
+    <button class="btn print" onclick="window.print()">🖨</button>
+  </div>
+
+  <div id="cards"></div>
+</div>
+
+<div class="ov" id="unlockOv">
+  <div class="modal">
+    <div class="hd">🔒 請輸入 Boss 密碼</div>
+    <div class="bd">
+      <p style="font-size:13px;color:#475569;margin-bottom:10px;">公式會影響兩校所有人的薪資，只有老闆可以修改。</p>
+      <input type="password" id="pwd" placeholder="Boss 密碼" autocomplete="current-password">
+      <div class="err" id="pwdErr"></div>
+    </div>
+    <div class="ft">
+      <button class="btn ghost" onclick="closeUnlock()">取消</button>
+      <button class="btn unlock" onclick="doUnlock()">🔓 解鎖</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const CLOUD_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbxipSVJFWZTjy5Kw8JcHYukt9NLPY2p2Z88hNOV-sIe1M82wY1SsGYFXjrRr6sfXYc/exec';
+function cloudUrl() { try { return localStorage.getItem('kc_cloud_url_v1') || CLOUD_URL_DEFAULT; } catch(_) { return CLOUD_URL_DEFAULT; } }
+
+// 預設值必須與 index.html 的 FORMULA_DEFAULTS 一致
+const DEFAULTS = {
+  OT_RATE: 180, PAY_RATE: 180, LEAVE_RATE: 133, LATE_FEE: 100,
+  KC_HEAD_RATE: 80, KC_WRITING_RATE: 40,
+  KC_CLASS_BASE_N: 4, KC_CLASS_BASE_PAY: 25000, KC_CLASS_STEP: 5000,
+  GRADE_A: 400, GRADE_B: 500, GRADE_C: 600, GRADE_D: 700,
+  PT_TEACH_RATE: 550, PT_TEACH_MIN: 550, PT_TEACH_MAX: 580, PT_ASSIST_RATE: 400,
+  ATT_REQUIRE_NO_LEAVE: true, ATT_REQUIRE_NO_LATE: true,
+  ENG_RATE: 100, MATH_RATE: 100, MIX_RATE: 500, TUTOR_FIXED: 3000,
+  CS_BASE: 15, CS_TIER: 20, CS_N1: 500, CS_N2: 1000, CS_S1: 1000, CS_S2: 1500, CS_SUMMER: '7,8',
+  AL_TABLE: [[0.5,3],[1,7],[2,10],[3,14],[5,15],[10,16]], AL_STEP: 1, AL_CAP: 30,
+  UNLOCK_DAY: 17,
+  ALERT_LOW_NET: 20000, ALERT_LEAVE_H: 16, ALERT_LATE: 3,
+  NEW_BASE: 29500, NEW_ATT: 500, NEW_LABOR: 1196, NEW_RETIRE: 1772
+};
+const LABELS = {
+  OT_RATE:'加班費率', PAY_RATE:'支薪費率', LEAVE_RATE:'請假扣款費率', LATE_FEE:'遲到扣款',
+  KC_HEAD_RATE:'美語帶班人數津貼', KC_WRITING_RATE:'國中部 Writing 人數津貼',
+  KC_CLASS_BASE_N:'帶班數基本班數', KC_CLASS_BASE_PAY:'帶班數基本薪資', KC_CLASS_STEP:'每多一班加給',
+  GRADE_A:'A 職等時薪', GRADE_B:'B 職等時薪', GRADE_C:'C 職等時薪', GRADE_D:'D 職等時薪',
+  PT_TEACH_RATE:'美語授課預設時薪', PT_TEACH_MIN:'美語授課時薪下限', PT_TEACH_MAX:'美語授課時薪上限', PT_ASSIST_RATE:'與外師共同上課時薪',
+  ATT_REQUIRE_NO_LEAVE:'全勤條件：無請假', ATT_REQUIRE_NO_LATE:'全勤條件：無遲到',
+  ENG_RATE:'美語津貼費率', MATH_RATE:'數學班津貼費率', MIX_RATE:'混班津貼費率', TUTOR_FIXED:'美語輔導津貼',
+  CS_BASE:'帶班基準人數', CS_TIER:'帶班分段人數', CS_N1:'平時第一段', CS_N2:'平時第二段',
+  CS_S1:'暑期第一段', CS_S2:'暑期第二段', CS_SUMMER:'暑期月份',
+  AL_TABLE:'特休對照表', AL_STEP:'特休每年遞增', AL_CAP:'特休上限',
+  UNLOCK_DAY:'薪資條開放日', ALERT_LOW_NET:'實領偏低門檻', ALERT_LEAVE_H:'請假提醒門檻', ALERT_LATE:'遲到提醒門檻',
+  NEW_BASE:'新員工底薪', NEW_ATT:'新員工全勤獎金', NEW_LABOR:'新員工勞保自付', NEW_RETIRE:'新員工退休金提撥'
+};
+
+let saved = clone(DEFAULTS);   // what's in the cloud
+let cfg   = clone(DEFAULTS);   // what's on screen
+let unlocked = false;
+let savedMeta = null;
+const $ = id => document.getElementById(id);
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function fmt(n) { return (Number(n) || 0).toLocaleString('en-US'); }
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+// ---------- formula engines (mirror index.html) ----------
+function isSummer(m) { return String(cfg.CS_SUMMER).split(/[,，\s]+/).map(Number).includes(Number(m)); }
+function classSize(hc, month) {
+  const s = isSummer(month), b = +cfg.CS_BASE, t = +cfg.CS_TIER;
+  const r1 = +(s ? cfg.CS_S1 : cfg.CS_N1), r2 = +(s ? cfg.CS_S2 : cfg.CS_N2);
+  hc = +hc || 0;
+  if (hc <= b) return 0;
+  if (hc <= t) return (hc - b) * r1;
+  return (t - b) * r1 + (hc - t) * r2;
+}
+function alDays(years) {
+  const table = (cfg.AL_TABLE || []).map(r => [+r[0], +r[1]]).sort((a, b) => a[0] - b[0]);
+  let days = 0, lastYr = 0, lastDays = 0;
+  for (const [yr, d] of table) if (years >= yr) { days = d; lastYr = yr; lastDays = d; }
+  if (table.length && lastYr === table[table.length - 1][0] && lastYr >= 1)
+    days = lastDays + (Math.floor(years) - Math.floor(lastYr)) * +cfg.AL_STEP;
+  return Math.min(+cfg.AL_CAP, days);
+}
+
+// ---------- render helpers ----------
+const P = (k, unit, wide) =>
+  `<input class="p${wide ? ' wide' : ''}" data-k="${k}" type="${wide ? 'text' : 'number'}" value="${esc(cfg[k])}" ${unlocked ? '' : 'disabled'}>` +
+  (unit ? `<span class="unit">${unit}</span>` : '');
+const V = t => `<span class="var">${t}</span>`;
+const O = t => `<span class="op">${t}</span>`;
+const CHK = (k, text) =>
+  `<label class="chk" data-chk="${k}"><input type="checkbox" data-k="${k}" ${cfg[k] ? 'checked' : ''} ${unlocked ? '' : 'disabled'}> ${text}</label>`;
+
+function render() {
+  const monthOpts = Array.from({length:12}, (_, i) => `<option value="${i+1}">${i+1} 月</option>`).join('');
+  $('cards').innerHTML = `
+  <div class="card" style="--c:#0EA5E9">
+    <h2><span class="no">1</span> 時數計費 Hourly</h2>
+    <div class="desc">主管輸入的時數 / 次數，乘上下列費率。</div>
+    <div class="f" style="--c:#0EA5E9">
+      <div class="name">加班費 <small>② 非固定支付</small></div>
+      <div class="expr">${V('加班時數')} ${O('×')} ${P('OT_RATE','元／小時')}</div>
+      <div class="try">試算：<input type="number" data-try="ot" value="4"> 小時 → <span class="out" id="o_ot"></span></div>
+    </div>
+    <div class="f" style="--c:#0EA5E9">
+      <div class="name">支薪金額 <small>② 非固定支付</small></div>
+      <div class="expr">${V('支薪時數')} ${O('×')} ${P('PAY_RATE','元／小時')}</div>
+      <div class="try">試算：<input type="number" data-try="pay" value="10"> 小時 → <span class="out" id="o_pay"></span></div>
+    </div>
+    <div class="f" style="--c:#DC2626">
+      <div class="name">請假扣款 <small>③ 應代扣</small></div>
+      <div class="expr">${V('請假時數')} ${O('×')} ${P('LEAVE_RATE','元／小時')}</div>
+      <div class="try">試算：<input type="number" data-try="leave" value="8"> 小時 → <span class="out" id="o_leave"></span></div>
+    </div>
+    <div class="f" style="--c:#DC2626">
+      <div class="name">遲到扣款 <small>③ 應代扣</small></div>
+      <div class="expr">${V('遲到次數')} ${O('×')} ${P('LATE_FEE','元／次')}</div>
+      <div class="try">試算：<input type="number" data-try="late" value="2"> 次 → <span class="out" id="o_late"></span></div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#10B981">
+    <h2><span class="no">2</span> 全勤獎金 Attendance</h2>
+    <div class="desc">金額設定在每位員工的資料裡；這裡決定「什麼情況下發放」。</div>
+    <div class="f" style="--c:#10B981">
+      <div class="name">全勤獎金 <small>① 約定薪資</small></div>
+      <div class="expr">符合以下條件才發 ${V('員工的全勤獎金')}，否則 ${O('=')} 0</div>
+      <div class="expr" style="margin-top:4px;">${CHK('ATT_REQUIRE_NO_LEAVE','本月請假時數 = 0')} ${CHK('ATT_REQUIRE_NO_LATE','本月遲到次數 = 0')}</div>
+      <div class="note">兩個都取消勾選 = 一律發放。<br>
+        主管輸入頁 / 員工抽屜的「全勤」欄可逐月手動指定：<b>自動</b>（依上面條件）、<b>✓ 全勤</b>（一律發）、<b>✗ 非全勤</b>（一律不發）。</div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#8B5CF6">
+    <h2><span class="no">3</span> 人數津貼 Headcount Allowances</h2>
+    <div class="desc">在員工資料抽屜輸入人數 / 校數時，自動算出津貼金額（已存的金額不會自動重算，改人數時才會更新）。</div>
+    <div class="f" style="--c:#8B5CF6">
+      <div class="name">美語津貼</div>
+      <div class="expr">${V('美語人數')} ${O('×')} ${P('ENG_RATE','元／人')}</div>
+    </div>
+    <div class="f" style="--c:#8B5CF6">
+      <div class="name">數學班津貼</div>
+      <div class="expr">${V('數學班人數')} ${O('×')} ${P('MATH_RATE','元／人')}</div>
+    </div>
+    <div class="f" style="--c:#8B5CF6">
+      <div class="name">混班津貼</div>
+      <div class="expr">${V('混班校數')} ${O('×')} ${P('MIX_RATE','元／校')}</div>
+    </div>
+    <div class="f" style="--c:#8B5CF6">
+      <div class="name">美語輔導津貼 <small>有 / 無 切換</small></div>
+      <div class="expr">有 ${O('→')} ${P('TUTOR_FIXED','元／月')} ${O('；')} 無 ${O('→')} 0</div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#F59E0B">
+    <h2><span class="no">4</span> 帶班人數津貼 Class Size（分段）</h2>
+    <div class="desc">依月份自動切換「平時」與「暑期」費率。</div>
+    <div class="f" style="--c:#F59E0B">
+      <div class="name">分段規則</div>
+      <div class="expr">人數 ${O('≤')} ${P('CS_BASE','人')} ${O('→')} 0</div>
+      <div class="expr">${V('基準+1')} ${O('～')} ${P('CS_TIER','人')} ${O('→')} (人數 − 基準) ${O('×')} 第一段費率</div>
+      <div class="expr">超過分段人數 ${O('→')} (分段 − 基準) ${O('×')} 第一段 ${O('+')} (人數 − 分段) ${O('×')} 第二段</div>
+      <div class="expr" style="margin-top:6px;">平時：第一段 ${P('CS_N1','元')} 第二段 ${P('CS_N2','元')}</div>
+      <div class="expr">暑期：第一段 ${P('CS_S1','元')} 第二段 ${P('CS_S2','元')}</div>
+      <div class="expr">暑期月份 ${P('CS_SUMMER','（用逗號分隔，例：7,8）', true)}</div>
+      <div class="try">試算：<input type="number" data-try="cs" value="22"> 人，
+        <select data-try="csm">${monthOpts}</select> → <span class="out" id="o_cs"></span></div>
+      <div class="tbl-scroll" id="csTable"></div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#6D28D9">
+    <h2><span class="no">🏰</span> 國中部 · 兼職美語 Kidcastle</h2>
+    <div class="desc">只套用在校區為「國中部」的員工，以及職位為「兼職美語」的員工。奇趣線上教材、行政為固定金額，在員工資料的「🏰 國中部項目」逐人輸入。</div>
+    <div class="f" style="--c:#6D28D9">
+      <div class="name">帶班數津貼 <small>② 非固定支付</small></div>
+      <div class="expr">${V('帶班數')} ${O('≤')} ${P('KC_CLASS_BASE_N','班')} ${O('→')} 以此班數計 ${P('KC_CLASS_BASE_PAY','元')}</div>
+      <div class="expr">超過 ${O('→')} 每多 1 班 ${O('+')} ${P('KC_CLASS_STEP','元')}</div>
+      <div class="note">班數 0 = 不發。在員工資料輸入「帶班數」時自動算出（也可手動改）。</div>
+      <div class="try">試算：<input type="number" data-try="kccls" value="6"> 班 → <span class="out" id="o_kccls"></span></div>
+    </div>
+    <div class="f" style="--c:#6D28D9">
+      <div class="name">授課項目（職等時薪） <small>② 非固定支付</small></div>
+      <div class="expr">${V('V Writing／資優美語／一對一／B Reading／輔導補課 時數')} ${O('×')} ${V('員工職等時薪')}</div>
+      <div class="expr" style="margin-top:4px;">A ${P('GRADE_A','元／時')} B ${P('GRADE_B','元／時')} C ${P('GRADE_C','元／時')} D ${P('GRADE_D','元／時')}</div>
+      <div class="note">職等在員工資料「授課職等」設定（每人一個）；時數每月在主管輸入頁或員工資料「本月薪資」輸入。</div>
+      <div class="try">試算：<input type="number" step="0.5" data-try="kcgh" value="10"> 小時，職等
+        <select data-try="kcgg"><option>A</option><option selected>B</option><option>C</option><option>D</option></select> → <span class="out" id="o_kcg"></span></div>
+    </div>
+    <div class="f" style="--c:#6D28D9">
+      <div class="name">美語帶班人數津貼 <small>② 非固定支付</small></div>
+      <div class="expr">${V('美語帶班人數')} ${O('×')} ${P('KC_HEAD_RATE','元／人')}</div>
+      <div class="note">國中部專用欄位；原本的「帶班人數津貼」仍用上方「4 帶班人數津貼（分段）」的規則。</div>
+      <div class="try">試算：<input type="number" data-try="kchead" value="40"> 人 → <span class="out" id="o_kchead"></span></div>
+    </div>
+    <div class="f" style="--c:#6D28D9">
+      <div class="name">Writing 人數津貼 <small>② 非固定支付</small></div>
+      <div class="expr">${V('Writing 人數')} ${O('×')} ${P('KC_WRITING_RATE','元／人')}</div>
+      <div class="try">試算：<input type="number" data-try="kcw" value="8"> 人 → <span class="out" id="o_kcw"></span></div>
+    </div>
+    <div class="f" style="--c:#DB2777">
+      <div class="name">美語授課津貼 <small>② 非固定支付</small></div>
+      <div class="expr">${V('兼職美語授課時數')} ${O('×')} ${V('時薪')}</div>
+      <div class="expr" style="margin-top:4px;">預設時薪 ${P('PT_TEACH_RATE','元／小時')}　可設範圍 ${P('PT_TEACH_MIN','元')} ${O('～')} ${P('PT_TEACH_MAX','元')}</div>
+      <div class="note">每位員工可在員工資料「美語授課時薪」個別設定（0 = 用預設）；超出範圍時儲存會提醒。</div>
+      <div class="try">試算：<input type="number" step="0.5" data-try="ptt" value="20"> 小時 → <span class="out" id="o_ptt"></span></div>
+    </div>
+    <div class="f" style="--c:#DB2777">
+      <div class="name">與外師共同上課津貼 <small>② 非固定支付</small></div>
+      <div class="expr">${V('與外師共同上課時數')} ${O('×')} ${P('PT_ASSIST_RATE','元／小時')}</div>
+      <div class="note">每位員工也可個別設定「與外師共同上課時薪」（0 = 用預設）。時數在主管輸入頁或員工資料「本月薪資」每月輸入。</div>
+      <div class="try">試算：<input type="number" step="0.5" data-try="pta" value="10"> 小時 → <span class="out" id="o_pta"></span></div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#14B8A6">
+    <h2><span class="no">5</span> 特休天數 Annual Leave</h2>
+    <div class="desc">依到職日自動計算「可休日數」；員工資料裡的「可休日數_手動」大於 0 時會覆寫此計算。</div>
+    <div class="f" style="--c:#14B8A6">
+      <div class="name">年資 → 天數 對照表</div>
+      <div class="tbl-scroll"><table class="mini" id="alTbl"></table></div>
+      <button class="add" onclick="alAdd()" ${unlocked ? '' : 'disabled'}>＋ 新增一級</button>
+      <div class="expr" style="margin-top:10px;">最後一級之後，每滿 1 年 ${O('+')} ${P('AL_STEP','天')} ，上限 ${P('AL_CAP','天')}</div>
+      <div class="try">試算：年資 <input type="number" step="0.5" data-try="al" value="12"> 年 → <span class="out" id="o_al"></span></div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#2E5984">
+    <h2><span class="no">6</span> 薪資條總計 Payslip Totals <span class="ro-tag">結構固定 · 僅供檢視</span></h2>
+    <div class="desc">項目歸屬與加總方式，對應「📄 薪水條」頁面。</div>
+    <div class="struct">
+      <div class="sbox a"><h4>(A) 約定薪資結構</h4>底薪 + 全勤獎金 + 年資津貼</div>
+      <div class="sbox b"><h4>(B) 非固定支付</h4>主管 + 美語 + 美語輔導 + 數學班 + 帶班人數 + 混班 + 數學(手動) + 留班 + 考試 + 其他 + <b>國中部（帶班數津貼＋美語帶班人數津貼＋授課時數×職等＋奇趣線上教材＋行政＋Writing）</b> + <b>美語授課津貼＋與外師共同上課津貼</b> + 補貼公會勞保 + 補貼公會健保 + 補貼健保眷屬 + 補貼退休金 + 加班費 + 支薪金額 + <b>考試津貼</b> + <b>預繳津貼</b> + 獎金</div>
+      <div class="sbox c"><h4>(C) 應代扣項目</h4>勞保自付 + 健保自付 + 健保眷屬扣款 + 退休金提撥 + 請假扣款 + 遲到扣款 + 扣款</div>
+      <div class="sbox d"><h4>(D) 現金給付</h4>已用現金支付的部分</div>
+    </div>
+    <div class="total">
+      本月應得總金額 = (A) + (B) − (C)<br>
+      餘款轉帳金額 = (A) + (B) − (C) − (D)
+    </div>
+    <div class="f" style="--c:#2E5984;margin-top:10px;">
+      <div class="name">其他相關公式</div>
+      <div class="note">
+        • 主管輸入頁「加扣薪小計」= 加班費 + 支薪金額 + 考試津貼 + 預繳津貼 + 獎金 − 請假扣款 − 遲到扣款 − 扣款<br>
+        • 薪資條匯總：總薪資 = (A)+(B)−(C)；匯款金額 = 總薪資 − 現金給付<br>
+        • 投保級距、加班時數、帶班人數、混班校數為資訊欄位，不計入加總<br>
+        • 考試津貼、預繳津貼由主管／老闆每月輸入，直接以金額計入 (B)<br>
+        • 本月人數欄位只顯示、不計入加總：安親人數、混班數<br>
+        • 協助S校＋莊敬校、J校／S校安親、S校美語、林口校／莊敬美語總人數、莊敬安親等項目已改為「其他津貼」罐頭項目，以金額逐項計入 (B)
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="--c:#64748b">
+    <h2><span class="no">7</span> 系統規則 System Rules</h2>
+    <div class="desc">查閱時間、總覽頁異常提醒、新增員工時的預設值。</div>
+    <div class="f" style="--c:#64748b">
+      <div class="name">員工查閱當月薪資條</div>
+      <div class="expr">每月 ${P('UNLOCK_DAY','日（含）')} 之後才開放；過去月份不受限</div>
+    </div>
+    <div class="f" style="--c:#64748b">
+      <div class="name">⚠ 異常提醒門檻</div>
+      <div class="expr">實領低於 ${P('ALERT_LOW_NET','元')}</div>
+      <div class="expr">請假 ≥ ${P('ALERT_LEAVE_H','小時')}</div>
+      <div class="expr">遲到 ≥ ${P('ALERT_LATE','次')}</div>
+      <div class="note">實領為負數時一律提醒。</div>
+    </div>
+    <div class="f" style="--c:#64748b">
+      <div class="name">➕ 新增員工預設值</div>
+      <div class="expr">底薪 ${P('NEW_BASE','元')} 全勤獎金 ${P('NEW_ATT','元')}</div>
+      <div class="expr">勞保自付 ${P('NEW_LABOR','元')} 退休金提撥 ${P('NEW_RETIRE','元')}</div>
+    </div>
+  </div>`;
+  renderAlTable();
+  markChanged();
+  calc();
+}
+
+function renderAlTable() {
+  const rows = cfg.AL_TABLE.map((r, i) => `<tr>
+      <td>滿 <input class="p" style="width:70px" type="number" step="0.5" data-al="${i}" data-col="0" value="${r[0]}" ${unlocked?'':'disabled'}> 年</td>
+      <td><input class="p" style="width:70px" type="number" data-al="${i}" data-col="1" value="${r[1]}" ${unlocked?'':'disabled'}> 天</td>
+      <td><button class="rm" onclick="alRemove(${i})" ${unlocked && cfg.AL_TABLE.length > 1 ? '' : 'disabled'}>✕</button></td>
+    </tr>`).join('');
+  $('alTbl').innerHTML = `<tr><th>年資</th><th>可休天數</th><th></th></tr>${rows}`;
+}
+function alAdd() {
+  const last = cfg.AL_TABLE[cfg.AL_TABLE.length - 1] || [0, 0];
+  cfg.AL_TABLE.push([Number(last[0]) + 1, Number(last[1]) + 1]);
+  renderAlTable(); markChanged(); calc();
+}
+function alRemove(i) { cfg.AL_TABLE.splice(i, 1); renderAlTable(); markChanged(); calc(); }
+
+function calc() {
+  const t = k => Number((document.querySelector(`[data-try="${k}"]`) || {}).value) || 0;
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  set('o_ot', 'NT$ ' + fmt(Math.round(t('ot') * cfg.OT_RATE)));
+  set('o_pay', 'NT$ ' + fmt(Math.round(t('pay') * cfg.PAY_RATE)));
+  set('o_leave', '扣 NT$ ' + fmt(Math.round(t('leave') * cfg.LEAVE_RATE)));
+  set('o_late', '扣 NT$ ' + fmt(t('late') * cfg.LATE_FEE));
+  const m = t('csm') || 3;
+  set('o_cs', 'NT$ ' + fmt(classSize(t('cs'), m)) + (isSummer(m) ? '（暑期）' : '（平時）'));
+  set('o_al', alDays(t('al')) + ' 天');
+  set('o_kchead', 'NT$ ' + fmt(Math.round(t('kchead') * cfg.KC_HEAD_RATE)));
+  set('o_kcw', 'NT$ ' + fmt(Math.round(t('kcw') * cfg.KC_WRITING_RATE)));
+  const kcN = t('kccls');
+  set('o_kccls', 'NT$ ' + fmt(kcN <= 0 ? 0 : +cfg.KC_CLASS_BASE_PAY + Math.max(0, Math.ceil(kcN) - cfg.KC_CLASS_BASE_N) * cfg.KC_CLASS_STEP));
+  const kcG = (document.querySelector('[data-try="kcgg"]') || {}).value || 'B';
+  set('o_kcg', 'NT$ ' + fmt(Math.round(t('kcgh') * cfg['GRADE_' + kcG])));
+  set('o_ptt', 'NT$ ' + fmt(Math.round(t('ptt') * cfg.PT_TEACH_RATE)));
+  set('o_pta', 'NT$ ' + fmt(Math.round(t('pta') * cfg.PT_ASSIST_RATE)));
+  // class-size quick table
+  const b = +cfg.CS_BASE, start = Math.max(0, b), ns = [];
+  for (let n = start; n <= start + 10; n++) ns.push(n);
+  const nm = [1,2,3,4,5,6,7,8,9,10,11,12].find(x => !isSummer(x)) || 1;
+  const sm = [1,2,3,4,5,6,7,8,9,10,11,12].find(x => isSummer(x));
+  $('csTable').innerHTML = `<table class="mini"><tr><th>人數</th>${ns.map(n => `<th>${n}</th>`).join('')}</tr>
+    <tr><td>平時</td>${ns.map(n => `<td>${fmt(classSize(n, nm))}</td>`).join('')}</tr>
+    ${sm ? `<tr><td>暑期</td>${ns.map(n => `<td>${fmt(classSize(n, sm))}</td>`).join('')}</tr>` : ''}</table>`;
+}
+
+function markChanged() {
+  document.querySelectorAll('input.p[data-k]').forEach(el => {
+    const k = el.dataset.k;
+    el.classList.toggle('changed', String(cfg[k]) !== String(saved[k]));
+  });
+  document.querySelectorAll('label.chk[data-chk]').forEach(el => {
+    const k = el.dataset.chk;
+    el.classList.toggle('changed', !!cfg[k] !== !!saved[k]);
+  });
+  document.querySelectorAll('input[data-al]').forEach(el => {
+    const i = +el.dataset.al, c = +el.dataset.col;
+    el.classList.toggle('changed', !saved.AL_TABLE[i] || String(saved.AL_TABLE[i][c]) !== String(cfg.AL_TABLE[i][c]));
+  });
+  updateStatus();
+}
+
+function changedKeys() { return Object.keys(DEFAULTS).filter(k => !same(cfg[k], saved[k])); }
+
+function updateStatus() {
+  const n = changedKeys().length;
+  const lock = unlocked ? '<span class="pill open">🔓 可編輯</span>' : '<span class="pill lock">🔒 唯讀</span>';
+  const dirty = n ? `<span class="pill dirty">${n} 項未儲存</span>` : '';
+  const meta = savedMeta ? `雲端最後更新：<b>${esc(savedMeta.time || '')}</b>${savedMeta.by ? '（' + esc(savedMeta.by) + '）' : ''}` : '目前使用系統預設值';
+  $('status').innerHTML = lock + dirty + meta;
+  $('btnSave').disabled = !unlocked || !n;
+  $('btnUndo').disabled = !unlocked || !n;
+  $('btnReset').disabled = !unlocked;
+  $('btnUnlock').style.display = unlocked ? 'none' : '';
+}
+
+// input wiring
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.k) {
+    const k = el.dataset.k;
+    if (el.type === 'checkbox') cfg[k] = el.checked;
+    else if (typeof DEFAULTS[k] === 'number') cfg[k] = el.value === '' ? '' : Number(el.value);
+    else cfg[k] = el.value;
+    markChanged(); calc();
+  } else if (el.dataset.al !== undefined) {
+    cfg.AL_TABLE[+el.dataset.al][+el.dataset.col] = el.value === '' ? '' : Number(el.value);
+    markChanged(); calc();
+  } else if (el.dataset.try !== undefined) calc();
+});
+document.addEventListener('change', e => { if (e.target.dataset.try !== undefined) calc(); });
+
+function validate() {
+  const errs = [];
+  Object.keys(DEFAULTS).forEach(k => {
+    if (typeof DEFAULTS[k] === 'number') {
+      const v = cfg[k];
+      if (v === '' || isNaN(v)) errs.push(LABELS[k] + ' 不可空白');
+      else if (v < 0) errs.push(LABELS[k] + ' 不可為負數');
+    }
+  });
+  if (+cfg.CS_TIER < +cfg.CS_BASE) errs.push('帶班分段人數 不可小於 基準人數');
+  if (!String(cfg.CS_SUMMER).split(/[,，\s]+/).filter(Boolean).every(x => +x >= 1 && +x <= 12)) errs.push('暑期月份 須為 1~12，用逗號分隔');
+  if (+cfg.PT_TEACH_MAX < +cfg.PT_TEACH_MIN) errs.push('美語授課時薪上限 不可小於 下限');
+  if (+cfg.PT_TEACH_RATE < +cfg.PT_TEACH_MIN || +cfg.PT_TEACH_RATE > +cfg.PT_TEACH_MAX) errs.push('美語授課預設時薪 須在下限～上限之間');
+  if (+cfg.UNLOCK_DAY < 1 || +cfg.UNLOCK_DAY > 31) errs.push('薪資條開放日 須為 1~31');
+  if (cfg.AL_TABLE.some(r => r[0] === '' || r[1] === '' || isNaN(r[0]) || isNaN(r[1]))) errs.push('特休對照表 有空白欄位');
+  return errs;
+}
+
+// ---------- cloud ----------
+async function cloudGet() {
+  const u = cloudUrl();
+  const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'action=read&_=' + Date.now(), { cache:'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端錯誤');
+  return j.data || {};
+}
+async function cloudPost(action, payload) {
+  const r = await fetch(cloudUrl(), {
+    method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ action }, payload))
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '雲端錯誤');
+  return j;
+}
+
+async function load() {
+  try {
+    const d = await cloudGet();
+    const c = d.formulaConfig || {};
+    saved = clone(DEFAULTS);
+    Object.keys(DEFAULTS).forEach(k => { if (c[k] !== undefined && c[k] !== null && c[k] !== '') saved[k] = c[k]; });
+    savedMeta = d.formulaConfigMeta || null;
+    cfg = clone(saved);
+    render();
+  } catch (e) {
+    render();
+    $('status').innerHTML = `<span class="pill lock">⚠ 雲端讀取失敗</span>${esc(e.message)}（目前顯示預設值）`;
+  }
+}
+
+async function saveCloud() {
+  const errs = validate();
+  if (errs.length) { toast(errs[0], 'error'); return; }
+  const keys = changedKeys();
+  const lines = keys.map(k => `• ${LABELS[k]}：${fmtVal(saved[k])} → ${fmtVal(cfg[k])}`).join('\n');
+  if (!confirm(`確定儲存以下 ${keys.length} 項公式變更？\n兩校所有薪資計算會立即套用。\n\n${lines}`)) return;
+  $('btnSave').disabled = true;
+  $('btnSave').textContent = '☁ 儲存中…';
+  try {
+    const d = await cloudGet();          // 讀最新資料，避免覆蓋別人剛存的薪資
+    if (!d.employees || !d.salary) throw new Error('雲端資料不完整，已取消儲存');
+    cfg.AL_TABLE.sort((a, b) => a[0] - b[0]);
+    d.formulaConfig = clone(cfg);
+    const meta = { time: new Date().toLocaleString('zh-TW', { hour12:false }), by: 'Boss' };
+    d.formulaConfigMeta = meta;
+    await cloudPost('write', { data: d });
+    cloudPost('append_log', { entry: { time: meta.time, user: '老闆（公式設定頁）',
+      text: '修改薪資公式：' + keys.map(k => `${LABELS[k]} ${fmtVal(saved[k])}→${fmtVal(cfg[k])}`).join('；') } }).catch(() => {});
+    saved = clone(cfg); savedMeta = meta;
+    render();
+    toast('✓ 已儲存到雲端；已開啟的薪資系統請按「🔄 重新整理」', 'success');
+  } catch (e) {
+    toast('儲存失敗：' + e.message, 'error');
+  } finally {
+    $('btnSave').textContent = '💾 儲存到雲端';
+    updateStatus();
+  }
+}
+function fmtVal(v) {
+  if (Array.isArray(v)) return v.map(r => `${r[0]}年:${r[1]}天`).join(' ');
+  if (typeof v === 'boolean') return v ? '要' : '不要';
+  return String(v);
+}
+
+function undoChanges() { cfg = clone(saved); render(); }
+function resetDefaults() {
+  if (!confirm('把畫面上所有公式恢復成系統預設值？（按「儲存到雲端」才會生效）')) return;
+  cfg = clone(DEFAULTS); render();
+}
+
+// ---------- boss unlock ----------
+function bossPasswords() {
+  const pw = [];
+  try {
+    const c = JSON.parse(localStorage.getItem('kc_credentials_v1') || 'null');
+    if (c) ['1','2'].forEach(s => (c[s] && c[s].users || []).forEach(u => { if (u.username === 'boss') pw.push(u.password); }));
+  } catch(_) {}
+  if (!pw.length) pw.push('kidcastle2026');   // 與 index.html DEFAULT_CREDS 相同
+  return pw;
+}
+function openUnlock() { $('pwd').value = ''; $('pwdErr').textContent = ''; $('unlockOv').classList.add('show'); setTimeout(() => $('pwd').focus(), 60); }
+function closeUnlock() { $('unlockOv').classList.remove('show'); }
+function doUnlock() {
+  const p = ($('pwd').value || '').trim();
+  if (!p) { $('pwdErr').textContent = '請輸入密碼'; return; }
+  if (!bossPasswords().includes(p)) { $('pwdErr').textContent = '密碼錯誤'; return; }
+  unlocked = true; closeUnlock(); render(); toast('已解鎖，可以開始修改', 'success');
+}
+$('pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doUnlock(); });
+window.addEventListener('beforeunload', e => { if (changedKeys().length) { e.preventDefault(); e.returnValue = ''; } });
+
+let _t;
+function toast(msg, type) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (type || '');
+  clearTimeout(_t); _t = setTimeout(() => t.className = 'toast', 3200);
+}
+
+load();
+</script>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261022V2010</div>
+<!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
+<style>
+  .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }
+  .pwd-eye-wrap > input { padding-right: 40px !important; box-sizing: border-box; }
+  .pwd-eye-wrap.block { display: block; width: 100%; }
+  .pwd-eye-wrap.block > input { width: 100% !important; }
+  .pwd-eye-wrap.inline { display: inline-block; }
+  .pwd-eye-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; cursor: pointer; font-size: 16px; line-height: 1;
+    padding: 6px 7px; border-radius: 6px; opacity: .7; }
+  .pwd-eye-btn:hover { opacity: 1; background: rgba(15,23,42,.06); }
+  .pwd-eye-btn.on { opacity: 1; }
+  @media print { .pwd-eye-btn { display: none !important; } }
+</style>
+<script>
+(function () {
+  function isEyeTarget(el) {
+    return el && el.tagName === 'INPUT' && !el.dataset.noEye && !el.closest('.pwd-eye-wrap') &&
+      (el.type === 'password' || el.dataset.pwd === '1');
+  }
+  function addEye(input) {
+    if (!isEyeTarget(input)) return;
+    if (input.dataset.pwd === '1') input.type = 'password';
+    const wrap = document.createElement('span');
+    const cs = getComputedStyle(input);
+    const rendered = input.offsetWidth > 0;
+    const parentW = input.parentElement ? input.parentElement.clientWidth : 0;
+    const full = rendered ? (input.offsetWidth >= parentW - 6) : (cs.width.endsWith('%') || cs.display === 'block');
+    wrap.className = 'pwd-eye-wrap ' + (full ? 'block' : 'inline');
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pwd-eye-btn no-print';
+    btn.textContent = '👁';
+    btn.title = btn.ariaLabel = '顯示密碼';
+    btn.tabIndex = -1;
+    btn.addEventListener('mousedown', e => e.preventDefault());   // 不讓輸入框失去焦點
+    btn.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+      btn.title = btn.ariaLabel = show ? '隱藏密碼' : '顯示密碼';
+      btn.classList.toggle('on', show);
+    });
+    wrap.appendChild(btn);
+  }
+  // 把畫面上所有密碼欄位恢復成「隱藏」（開啟密碼視窗、登出時呼叫）
+  window.resetPwdEyes = function (root) {
+    (root || document).querySelectorAll('.pwd-eye-wrap').forEach(w => {
+      const i = w.querySelector('input'), b = w.querySelector('.pwd-eye-btn');
+      if (i) i.type = 'password';
+      if (b) { b.textContent = '👁'; b.title = b.ariaLabel = '顯示密碼'; b.classList.remove('on'); }
+    });
+  };
+  function scan(root) {
+    if (!root || !root.querySelectorAll) return;
+    if (isEyeTarget(root)) addEye(root);
+    root.querySelectorAll('input[type="password"], input[data-pwd="1"]').forEach(addEye);
+  }
+  function start() {
+    scan(document.body);
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(scan)))
+      .observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+</body>
+
+</html>

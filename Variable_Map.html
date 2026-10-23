@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kidcastle 薪資變數關係圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 帳本式的左→右資料流圖（可橫向捲動）＋右側明細欄；下方為完整「位置總表」 */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #15233F; --muted: #5B6B85; --line: #D9E0EA; --soft: #EAEFF5;
+  --accent: #1D4ED8; --up: #1D4ED8; --down: #C2410C; --edge: #9AA8BC;
+  --gP: #6D28D9; --gM: #0284C7; --gL: #94A3B8; --gH: #0F9488; --gF: #D97706; --gI: #EA580C;
+  --gC: #16A34A; --gS: #1D4ED8; --gR: #DC2626; --gO: #334155;
+  --font-display: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1524; --surface: #162036; --ink: #E6ECF5; --muted: #9AA9C1; --line: #2A3753; --soft: #1D2942;
+  --accent: #7AA2FF; --up: #7AA2FF; --down: #FB923C; --edge: #4A5A78;
+  --gP: #A78BFA; --gM: #38BDF8; --gL: #8A97AB; --gH: #2DD4BF; --gF: #FBBF24; --gI: #FB923C;
+  --gC: #4ADE80; --gS: #7AA2FF; --gR: #F87171; --gO: #CBD5E1; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1524; --surface: #162036; --ink: #E6ECF5; --muted: #9AA9C1; --line: #2A3753; --soft: #1D2942;
+  --accent: #7AA2FF; --up: #7AA2FF; --down: #FB923C; --edge: #4A5A78;
+  --gP: #A78BFA; --gM: #38BDF8; --gL: #8A97AB; --gH: #2DD4BF; --gF: #FBBF24; --gI: #FB923C;
+  --gC: #4ADE80; --gS: #7AA2FF; --gR: #F87171; --gO: #CBD5E1; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.6; padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+header { display: grid; gap: 10px; }
+h1 { font-family: var(--font-display); font-weight: 900; font-size: clamp(22px, 3vw, 30px); margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0; max-width: 70ch; }
+.lede b.up { color: var(--up); } .lede b.down { color: var(--down); }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.flow span { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.tools input { font: inherit; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; width: 240px; max-width: 100%; }
+.tools input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.canvas { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: auto; max-height: 78vh; min-width: 0; }
+.canvas svg { display: block; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: 78vh; overflow-y: auto; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-size: 20px; margin: 6px 0 4px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: var(--bg); letter-spacing: .04em; }
+.sec { margin-top: 14px; }
+.sec > b { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; letter-spacing: .03em; }
+.formula { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chip { display: inline-block; margin: 2px 4px 2px 0; padding: 3px 9px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+.chip:hover, .chip:focus-visible { border-color: var(--accent); outline: none; }
+.go { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 8px; }
+.go span { min-width: 0; }
+.go a { flex-shrink: 0; text-decoration: none; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 12px; padding: 6px 10px; border-radius: 6px; }
+.go a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.note { font-size: 12px; color: var(--muted); }
+.node { cursor: pointer; }
+.node rect.box { fill: var(--surface); stroke-width: 1.5; }
+.node text { font-size: 12.5px; font-weight: 600; fill: var(--ink); pointer-events: none; font-family: var(--font-body); }
+.node:focus { outline: none; } .node:focus-visible rect.box { stroke-width: 3; }
+.edge { fill: none; stroke: var(--edge); stroke-width: 1.2; opacity: .55; }
+.colhead { font-size: 13px; font-weight: 900; fill: var(--ink); font-family: var(--font-display); }
+.grphead { font-size: 11px; font-weight: 700; fill: var(--muted); letter-spacing: .04em; }
+svg.dim .node:not(.on) { opacity: .2; } svg.dim .edge:not(.on) { opacity: .06; }
+.edge.on { opacity: 1; stroke-width: 2.2; } .edge.on.up { stroke: var(--up); } .edge.on.down { stroke: var(--down); }
+.node.sel rect.box { stroke: var(--ink); stroke-width: 3; }
+@media (prefers-reduced-motion: no-preference) { .node, .edge { transition: opacity .15s; } }
+section.table h2 { font-family: var(--font-display); font-size: 20px; margin: 8px 0; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { position: sticky; top: 0; background: var(--soft); font-size: 12px; color: var(--muted); letter-spacing: .03em; }
+td.f { font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; }
+tr.grp td { background: var(--soft); font-weight: 900; }
+td a { color: var(--accent); }
+footer { color: var(--muted); font-size: 12px; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } .panel { position: static; max-height: none; } .canvas { max-height: 60vh; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Kidcastle 薪資變數關係圖</h1>
+    <p class="lede">點任一項目：<b class="up">藍線</b>是它用到的項目（上游），<b class="down">橘線</b>是它會影響的項目（下游）。右側會顯示公式、在哪裡輸入、誰可以改，按「前往」直接打開薪資系統的那一頁。</p>
+    <div class="flow"><span>① 公式參數</span><span>② 每月／人數輸入</span><span>③ 員工固定金額</span><span>④ 自動計算</span><span>⑤ 小計 A／B／C／D</span><span>⑥ 實領・應發</span><span>⑦ 輸出</span></div>
+    <div class="tools">
+      <label for="q" class="note">搜尋</label>
+      <input id="q" type="search" placeholder="例如：考試津貼、實領" autocomplete="off">
+      <div class="legend" id="legend"></div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="canvas" id="canvas" aria-label="變數關係圖"></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <section class="table">
+    <h2>位置總表</h2>
+    <p class="note">每個項目的公式、上下游與位置。點項目名稱會在上方圖中標出。</p>
+    <div class="tbl"><table id="tbl"></table></div>
+  </section>
+
+  <footer>版本 V20261023V1500 · 「前往」連到線上薪資系統，需要先登入；系統內也可從右上角「🗺 關係圖」開啟同一張圖。</footer>
+</div>
+
+<script>
+const NODES = [{"id":"OT_RATE","label":"加班費率","col":0,"g":"P","desc":"每小時加班費","formula":"預設 180 元／小時","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"PAY_RATE","label":"支薪費率","col":0,"g":"P","desc":"支薪時數的時薪","formula":"預設 180 元／小時","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"LEAVE_RATE","label":"請假扣款費率","col":0,"g":"P","desc":"每請假 1 小時扣多少","formula":"預設 133 元／小時","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"LATE_FEE","label":"遲到扣款","col":0,"g":"P","desc":"每遲到 1 次扣多少","formula":"預設 100 元／次","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"ATT_RULE","label":"全勤條件","col":0,"g":"P","desc":"什麼情況算全勤","formula":"預設：當月請假 0 小時 且 遲到 0 次","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"ENG_RATE","label":"美語津貼費率","col":0,"g":"P","desc":"每位美語學生的津貼","formula":"預設 100 元／人","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"MATH_RATE","label":"數學班津貼費率","col":0,"g":"P","desc":"每位數學班學生的津貼","formula":"預設 100 元／人","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"MIX_RATE","label":"混班津貼費率","col":0,"g":"P","desc":"每個混班校區的津貼","formula":"預設 500 元／校","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"TUTOR_FIXED","label":"美語輔導固定額","col":0,"g":"P","desc":"美語輔導津貼每月固定金額","formula":"預設 3,000 元／月","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"KC_HEAD_RATE","label":"美語帶班人數費率","col":0,"g":"P","desc":"美語帶班人數津貼每人金額","formula":"預設 80 元／人","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"KC_WRITING_RATE","label":"Writing 人數費率","col":0,"g":"P","desc":"國中部 Writing 人數津貼每人金額","formula":"預設 40 元／人","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"KC_CLASS_PARAMS","label":"帶班數津貼規則","col":0,"g":"P","desc":"國中部帶班數津貼的班數規則","formula":"≤ 4 班 → 以 4 班計 25,000\n超過 4 班 → 每多 1 班 +5,000","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"GRADE_RATES","label":"職等時薪","col":0,"g":"P","desc":"國中部授課項目（V Writing、資優美語、一對一、B Reading、輔導補課）依員工職等的時薪","formula":"A 400／B 500／C 600／D 700 元/時","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"PT_TEACH_RATE","label":"美語授課時薪","col":0,"g":"P","desc":"美語授課津貼的預設時薪與可設範圍（員工資料可個別設定）","formula":"預設 550 元／小時\n可設 550～580","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}},{"text":"員工資料（✏ 編輯）→「美語授課時薪」","go":{"drawer":"美語授課時薪"}}],"who":"老闆"},{"id":"PT_ASSIST_RATE","label":"與外師共同上課時薪","col":0,"g":"P","desc":"與外師共同上課津貼的預設時薪（員工資料可個別設定）","formula":"預設 400 元／小時","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}},{"text":"員工資料（✏ 編輯）→「與外師共同上課時薪」","go":{"drawer":"與外師共同上課時薪"}}],"who":"老闆"},{"id":"CS_PARAMS","label":"帶班人數分段","col":0,"g":"P","desc":"帶班人數津貼的分段公式參數（平時／暑期 7、8 月不同費率）","formula":"基準 15 人、分段 20 人\n平時：每人 500／1,000\n暑期：每人 1,000／1,500","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}}],"who":"老闆"},{"id":"UNLOCK_DAY","label":"薪資條開放日","col":0,"g":"P","desc":"員工每月幾號起可以查詢當月薪資條","formula":"預設每月 17 日（遇假日順延，開放 7 天）","deps":[],"where":[{"text":"📐 薪資公式設定頁（Formula_Settings.html）","go":{"url":"Formula_Settings.html"}},{"text":"老闆設定面板（ReadWindowAdmin.html）","go":{"url":"ReadWindowAdmin.html"}}],"who":"老闆"},{"id":"加班時數","label":"加班時數","col":1,"g":"M","desc":"當月加班時數","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「加班時數」）","go":{"tab":"manager","col":"加班時數"}},{"text":"員工資料 →「📅 本月薪資」→「加班時數」","go":{"drawer":"加班時數","sal":true}}],"who":"主管、老闆"},{"id":"支薪時數","label":"支薪時數","col":1,"g":"M","desc":"當月另外支薪的時數","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「支薪時數」）","go":{"tab":"manager","col":"支薪時數"}},{"text":"員工資料 →「📅 本月薪資」→「支薪時數」","go":{"drawer":"支薪時數","sal":true}}],"who":"主管、老闆"},{"id":"請假時數","label":"請假時數","col":1,"g":"M","desc":"當月請假時數","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「請假時數」）","go":{"tab":"manager","col":"請假時數"}},{"text":"員工資料 →「📅 本月薪資」→「請假時數」","go":{"drawer":"請假時數","sal":true}}],"who":"主管、老闆"},{"id":"遲到次數","label":"遲到次數","col":1,"g":"M","desc":"當月遲到次數","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「遲到次數」）","go":{"tab":"manager","col":"遲到次數"}},{"text":"員工資料 →「📅 本月薪資」→「遲到次數」","go":{"drawer":"遲到次數","sal":true}}],"who":"主管、老闆"},{"id":"兼職美語授課時數","label":"兼職美語授課時數","col":1,"g":"M","desc":"當月兼職美語授課時數（國中部／兼職美語）","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「兼職美語授課時數」）","go":{"tab":"manager","col":"兼職美語授課時數"}},{"text":"員工資料 →「📅 本月薪資」→「兼職美語授課時數」","go":{"drawer":"兼職美語授課時數","sal":true}}],"who":"主管、老闆"},{"id":"與外師共同上課時數","label":"與外師共同上課時數","col":1,"g":"M","desc":"當月與外師共同上課時數（國中部／兼職美語）","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「與外師共同上課時數」）","go":{"tab":"manager","col":"與外師共同上課時數"}},{"text":"員工資料 →「📅 本月薪資」→「與外師共同上課時數」","go":{"drawer":"與外師共同上課時數","sal":true}}],"who":"主管、老闆"},{"id":"授課時數","label":"國中部授課時數","col":1,"g":"M","desc":"國中部每月授課時數：V Writing、資優美語、一對一、B Reading、輔導補課（各自一欄）","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「VWriting時數」）","go":{"tab":"manager","col":"VWriting時數"}},{"text":"員工資料 →「📅 本月薪資」→「VWriting時數」","go":{"drawer":"VWriting時數","sal":true}}],"who":"主管、老闆"},{"id":"本月備註","label":"本月備註","col":1,"g":"M","desc":"只顯示在當月薪資條的備註","formula":"","deps":[],"where":[{"text":"📝 主管輸入（表格欄位「備註」）","go":{"tab":"manager","col":"備註"}},{"text":"員工資料 →「📅 本月薪資」→「備註」","go":{"drawer":"備註","sal":true}}],"who":"主管、老闆"},{"id":"獎金","label":"獎金","col":1,"g":"L","desc":"當月獎金（輸入畫面已停用；有舊值時老闆可在本月薪資修改或清除）","formula":"","deps":[],"where":[{"text":"員工資料 →「📅 本月薪資」→「獎金」","go":{"drawer":"獎金","sal":true}}],"who":"老闆"},{"id":"扣款","label":"扣款","col":1,"g":"L","desc":"當月其他扣款（已停用欄位）","formula":"","deps":[],"where":[{"text":"員工資料 →「📅 本月薪資」→「扣款」","go":{"drawer":"扣款","sal":true}}],"who":"老闆"},{"id":"考試津貼","label":"考試津貼","col":1,"g":"L","desc":"當月考試津貼（已停用欄位）","formula":"","deps":[],"where":[{"text":"員工資料 →「📅 本月薪資」→「考試津貼」","go":{"drawer":"考試津貼","sal":true}}],"who":"老闆"},{"id":"預繳津貼","label":"預繳津貼","col":1,"g":"L","desc":"當月預繳津貼（已停用欄位）","formula":"","deps":[],"where":[{"text":"員工資料 →「📅 本月薪資」→「預繳津貼」","go":{"drawer":"預繳津貼","sal":true}}],"who":"老闆"},{"id":"全勤指定","label":"全勤（手動指定）","col":1,"g":"L","desc":"手動指定本月「全勤／非全勤」，覆蓋自動判斷（已停用欄位）","formula":"","deps":[],"where":[{"text":"員工資料 →「📅 本月薪資」→「全勤」","go":{"drawer":"全勤","sal":true}}],"who":"老闆"},{"id":"美語人數","label":"美語人數","col":1,"g":"H","desc":"美語課學生人數","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「美語人數」","go":{"drawer":"美語人數"}}],"who":"老闆"},{"id":"數學班人數","label":"數學班人數","col":1,"g":"H","desc":"數學班學生人數","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「數學班人數」","go":{"drawer":"數學班人數"}}],"who":"老闆"},{"id":"帶班人數","label":"帶班人數","col":1,"g":"H","desc":"帶班學生人數（可有小數）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「帶班人數」","go":{"drawer":"帶班人數"}}],"who":"老闆"},{"id":"混班校數","label":"混班校數","col":1,"g":"H","desc":"混班／混校的校區數","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「混班校數」","go":{"drawer":"混班校數"}}],"who":"老闆"},{"id":"美語帶班人數","label":"美語帶班人數","col":1,"g":"H","desc":"國中部帶班學生人數","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「美語帶班人數」","go":{"drawer":"美語帶班人數"}}],"who":"老闆"},{"id":"帶班數","label":"帶班數","col":1,"g":"H","desc":"國中部帶班數（班別寫在「帶班班別」，例 C2/T2/B2/S1）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「帶班數」","go":{"drawer":"帶班數"}}],"who":"老闆"},{"id":"職等","label":"授課職等","col":1,"g":"H","desc":"國中部員工的職等 A／B／C／D，決定授課時薪","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「職等」","go":{"drawer":"職等"}}],"who":"老闆"},{"id":"Writing人數","label":"Writing 人數","col":1,"g":"H","desc":"國中部 Writing 學生人數","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「Writing人數」","go":{"drawer":"Writing人數"}}],"who":"老闆"},{"id":"結構性請假時數","label":"結構性請假時數","col":1,"g":"H","desc":"每月固定的請假時數（例如固定少上班的時數）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「結構性請假時數」","go":{"drawer":"結構性請假時數"}}],"who":"老闆"},{"id":"底薪","label":"底薪","col":2,"g":"F","desc":"每月底薪","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「底薪」","go":{"drawer":"底薪"}},{"text":"🔒 老闆輸入（員工總表）","go":{"tab":"owner"}}],"who":"老闆"},{"id":"全勤獎金設定","label":"全勤獎金（金額）","col":2,"g":"F","desc":"符合全勤時可領的金額","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「全勤獎金」","go":{"drawer":"全勤獎金"}}],"who":"老闆"},{"id":"年資津貼","label":"年資津貼","col":2,"g":"F","desc":"依年資發放的固定津貼","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「年資津貼」","go":{"drawer":"年資津貼"}}],"who":"老闆"},{"id":"主管津貼","label":"主管津貼","col":2,"g":"F","desc":"主任／組長的職務津貼","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「主管津貼」","go":{"drawer":"主管津貼"}}],"who":"老闆"},{"id":"數學津貼","label":"數學津貼（手動）","col":2,"g":"F","desc":"手動加項（不是數學班津貼）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「數學津貼」","go":{"drawer":"數學津貼"}}],"who":"老闆"},{"id":"留班獎金","label":"留班獎金","col":2,"g":"F","desc":"自由輸入的留班獎金","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「留班獎金」","go":{"drawer":"留班獎金"}}],"who":"老闆"},{"id":"考試獎金","label":"考試獎金","col":2,"g":"F","desc":"考試相關獎金（員工固定項目）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「考試獎金」","go":{"drawer":"考試獎金"}}],"who":"老闆"},{"id":"其他津貼","label":"其他津貼","col":2,"g":"F","desc":"可逐項輸入名目／金額／說明，自動加總；明細會寫進薪資條備註","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「其他津貼」","go":{"drawer":"其他津貼"}}],"who":"老闆"},{"id":"國中部固定項目","label":"國中部固定項目","col":2,"g":"F","desc":"國中部逐人輸入的固定金額：奇趣線上教材、行政，列入 B","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「奇趣線上教材」","go":{"drawer":"奇趣線上教材"}}],"who":"老闆"},{"id":"勞保自付","label":"勞保自付","col":2,"g":"I","desc":"勞保（選「🔴 扣薪」時由員工付，列入 C）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「勞保自付額」","go":{"drawer":"勞保自付額"}}],"who":"老闆"},{"id":"健保自付","label":"健保自付","col":2,"g":"I","desc":"健保（選「🔴 扣薪」時由員工付，列入 C）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「健保自付額」","go":{"drawer":"健保自付額"}}],"who":"老闆"},{"id":"健保眷屬自付","label":"健保眷屬自付","col":2,"g":"I","desc":"健保眷屬（扣薪模式）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「健保眷屬扣款」","go":{"drawer":"健保眷屬扣款"}}],"who":"老闆"},{"id":"退休金提撥","label":"退休金提撥","col":2,"g":"I","desc":"退休金（扣薪模式）","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「退休金」","go":{"drawer":"退休金"}}],"who":"老闆"},{"id":"補貼勞健保退休","label":"補貼（勞健保／退休金）","col":2,"g":"I","desc":"同一欄位選「🟢 補貼」時改由公司付：補貼公會投保勞保、補貼公會健保自付、補貼健保眷屬、補貼退休金，列入 B","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「勞保自付額」","go":{"drawer":"勞保自付額"}}],"who":"老闆"},{"id":"現金給付","label":"現金給付","col":2,"g":"F","desc":"已用現金先付給員工的金額，轉帳時扣除","formula":"","deps":[],"where":[{"text":"員工資料（✏ 編輯）→「現金給付」","go":{"drawer":"現金給付"}}],"who":"老闆"},{"id":"加班費","label":"加班費","col":3,"g":"C","desc":"自動計算","formula":"加班費 = 加班時數 × 加班費率","deps":["加班時數","OT_RATE"],"where":[{"text":"員工資料 →「📅 本月薪資」→「加班時數」","go":{"drawer":"加班時數","sal":true}},{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"支薪金額","label":"支薪金額","col":3,"g":"C","desc":"自動計算","formula":"支薪金額 = 支薪時數 × 支薪費率","deps":["支薪時數","PAY_RATE"],"where":[{"text":"員工資料 →「📅 本月薪資」→「支薪時數」","go":{"drawer":"支薪時數","sal":true}},{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"請假扣款","label":"請假扣款","col":3,"g":"C","desc":"自動計算","formula":"請假扣款 = (請假時數 + 結構性請假時數) × 請假扣款費率","deps":["請假時數","結構性請假時數","LEAVE_RATE"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"遲到扣款","label":"遲到扣款","col":3,"g":"C","desc":"自動計算","formula":"遲到扣款 = 遲到次數 × 遲到扣款","deps":["遲到次數","LATE_FEE"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"全勤獎金實發","label":"全勤獎金（實發）","col":3,"g":"C","desc":"本月實際發放的全勤獎金","formula":"手動指定「全勤」→ 全勤獎金金額\n手動指定「非全勤」→ 0\n自動 → 符合全勤條件才發","deps":["全勤獎金設定","全勤指定","請假時數","遲到次數","ATT_RULE"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"美語津貼","label":"美語津貼","col":3,"g":"C","desc":"輸入人數時自動帶出（也可手動改）","formula":"美語津貼 = 美語人數 × 美語津貼費率","deps":["美語人數","ENG_RATE"],"where":[{"text":"員工資料（✏ 編輯）→「美語津貼」","go":{"drawer":"美語津貼"}}],"who":"自動（老闆可改）"},{"id":"數學班津貼","label":"數學班津貼","col":3,"g":"C","desc":"輸入人數時自動帶出（也可手動改）","formula":"數學班津貼 = 數學班人數 × 數學班津貼費率","deps":["數學班人數","MATH_RATE"],"where":[{"text":"員工資料（✏ 編輯）→「數學班津貼」","go":{"drawer":"數學班津貼"}}],"who":"自動（老闆可改）"},{"id":"帶班人數津貼","label":"帶班人數津貼","col":3,"g":"C","desc":"輸入人數時自動帶出（也可手動改）","formula":"人數 ≤ 基準 → 0\n基準＋1～分段 → (人數−基準) × 第一段費率\n超過分段 → 再加 (人數−分段) × 第二段費率\n（7、8 月用暑期費率）","deps":["帶班人數","CS_PARAMS"],"where":[{"text":"員工資料（✏ 編輯）→「帶班人數津貼」","go":{"drawer":"帶班人數津貼"}}],"who":"自動（老闆可改）"},{"id":"混班津貼","label":"混班津貼","col":3,"g":"C","desc":"輸入校數時自動帶出（也可手動改）","formula":"混班津貼 = 混班校數 × 混班津貼費率","deps":["混班校數","MIX_RATE"],"where":[{"text":"員工資料（✏ 編輯）→「混班津貼」","go":{"drawer":"混班津貼"}}],"who":"自動（老闆可改）"},{"id":"美語輔導津貼","label":"美語輔導津貼","col":3,"g":"C","desc":"固定金額","formula":"美語輔導津貼 = 美語輔導固定額","deps":["TUTOR_FIXED"],"where":[{"text":"員工資料（✏ 編輯）→「美語輔導津貼」","go":{"drawer":"美語輔導津貼"}}],"who":"自動（老闆可改）"},{"id":"帶班數津貼","label":"帶班數津貼","col":3,"g":"C","desc":"輸入班數時自動帶出（也可手動改）","formula":"班數 = 0 → 0\n班數 ≤ 4 → 25,000（以 4 班計）\n班數 > 4 → 25,000 + (班數 − 4) × 5,000","deps":["帶班數","KC_CLASS_PARAMS"],"where":[{"text":"員工資料（✏ 編輯）→「帶班數津貼」","go":{"drawer":"帶班數津貼"}}],"who":"自動（老闆可改）"},{"id":"授課金額","label":"國中部授課金額","col":3,"g":"C","desc":"自動計算","formula":"每個授課項目 = 該項時數 × 職等時薪\n（V Writing、資優美語、一對一、B Reading、輔導補課）","deps":["授課時數","職等","GRADE_RATES"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"美語帶班人數津貼","label":"美語帶班人數津貼","col":3,"g":"C","desc":"輸入人數時自動帶出（也可手動改）","formula":"美語帶班人數津貼 = 美語帶班人數 × 美語帶班人數費率","deps":["美語帶班人數","KC_HEAD_RATE"],"where":[{"text":"員工資料（✏ 編輯）→「美語帶班人數津貼」","go":{"drawer":"美語帶班人數津貼"}}],"who":"自動（老闆可改）"},{"id":"Writing人數津貼","label":"Writing 人數津貼","col":3,"g":"C","desc":"輸入人數時自動帶出（也可手動改）","formula":"Writing 人數津貼 = Writing 人數 × Writing 人數費率","deps":["Writing人數","KC_WRITING_RATE"],"where":[{"text":"員工資料（✏ 編輯）→「Writing人數津貼」","go":{"drawer":"Writing人數津貼"}}],"who":"自動（老闆可改）"},{"id":"兼職美語薪資","label":"美語授課／與外師共同上課津貼","col":3,"g":"C","desc":"自動計算","formula":"美語授課津貼 = 兼職美語授課時數 × 美語授課時薪\n與外師共同上課津貼 = 與外師共同上課時數 × 與外師共同上課時薪\n（員工沒設時薪就用公式設定頁預設）","deps":["兼職美語授課時數","與外師共同上課時數","PT_TEACH_RATE","PT_ASSIST_RATE"],"where":[{"text":"員工資料 →「📅 本月薪資」→「兼職美語授課時數」","go":{"drawer":"兼職美語授課時數","sal":true}},{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"A","label":"(A) 約定薪資","col":4,"g":"S","desc":"薪資條第一區","formula":"A = 底薪 + 全勤獎金（實發）+ 年資津貼","deps":["底薪","全勤獎金實發","年資津貼"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"B","label":"(B) 非固定支付","col":4,"g":"S","desc":"薪資條第二區","formula":"B = 主管 + 美語 + 美語輔導 + 數學班\n  + 帶班人數 + 混班 + 數學(手動) + 留班\n  + 考試獎金 + 其他津貼 + 補貼（勞健保／退休金）\n  + 帶班數津貼 + 授課(時數×職等) + 奇趣/行政\n  + 美語帶班人數 + Writing + 美語授課 + 與外師共同上課\n  + 加班費 + 支薪金額 + 考試津貼 + 預繳津貼 + 獎金","deps":["主管津貼","美語津貼","美語輔導津貼","數學班津貼","帶班人數津貼","混班津貼","數學津貼","留班獎金","考試獎金","其他津貼","補貼勞健保退休","帶班數津貼","美語帶班人數津貼","授課金額","國中部固定項目","Writing人數津貼","兼職美語薪資","加班費","支薪金額","考試津貼","預繳津貼","獎金"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"C","label":"(C) 應代扣","col":4,"g":"S","desc":"薪資條第三區","formula":"C = 勞保自付 + 健保自付 + 健保眷屬\n  + 退休金提撥 + 請假扣款 + 遲到扣款 + 扣款","deps":["勞保自付","健保自付","健保眷屬自付","退休金提撥","請假扣款","遲到扣款","扣款"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"D","label":"(D) 現金給付","col":4,"g":"S","desc":"薪資條第四區","formula":"D = 現金給付","deps":["現金給付"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"應發薪資","label":"應發薪資","col":5,"g":"R","desc":"扣勞健保前的薪資（Excel 匯出、總覽使用）","formula":"應發 = A + B − 請假扣款 − 遲到扣款 − 扣款","deps":["A","B","請假扣款","遲到扣款","扣款"],"where":[{"text":"📊 總覽","go":{"tab":"overview"}},{"text":"📝 主管輸入（表格欄位「應發薪資」）","go":{"tab":"manager","col":"應發薪資"}}],"who":"自動"},{"id":"實領","label":"實領（餘款轉帳）","col":5,"g":"R","desc":"最後轉帳給員工的金額","formula":"實領 = A + B − C − D","deps":["A","B","C","D"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"自動"},{"id":"薪水條","label":"薪水條","col":6,"g":"O","desc":"每位員工每月的薪資條（可列印／存 PDF）","formula":"","deps":["實領","A","B","C","D","本月備註"],"where":[{"text":"📄 薪水條","go":{"tab":"payslip"}}],"who":"老闆、員工本人"},{"id":"Email薪資條","label":"Email 薪資條","col":6,"g":"O","desc":"寄送薪資條給員工（寄件人 wufatw@gmail.com）","formula":"","deps":["薪水條"],"where":[{"text":"📄 薪水條 →「✉ 寄送薪資條」","go":{"tab":"payslip","fn":"mail"}}],"who":"老闆"},{"id":"員工查詢","label":"員工薪資查詢","col":6,"g":"O","desc":"員工用身份證字號登入查自己的薪資條（每月開放日起 7 天）","formula":"","deps":["薪水條","UNLOCK_DAY"],"where":[{"text":"員工薪資查詢頁（Employee_Salary_View.html）","go":{"url":"Employee_Salary_View.html"}}],"who":"員工本人"},{"id":"Excel匯出","label":"Excel 匯出","col":6,"g":"O","desc":"匯出 Salary Data.xlsx 等報表","formula":"","deps":["應發薪資","實領"],"where":[{"text":"📝 主管輸入 →「⬇ 匯出 Salary Data.xlsx」","go":{"tab":"manager"}}],"who":"主管、老闆"},{"id":"總覽","label":"總覽儀表板","col":6,"g":"O","desc":"全校薪資統計、圖表","formula":"","deps":["應發薪資","實領"],"where":[{"text":"📊 總覽","go":{"tab":"overview"}}],"who":"主管、老闆"}];
+// 薪資系統網址：放在系統資料夾（GitHub Pages／本機）時用相對路徑，其他地方（例如線上分享）用完整網址
+const SITE = 'https://wufatw-bot.github.io/NewKidcastleSalarySystem/';
+const BASE = (location.protocol === 'file:' || /github\.io$/.test(location.hostname)) ? '' : SITE;
+const G = {
+  P: '公式參數', M: '每月輸入', L: '已停用的每月欄位', H: '員工人數／時數', F: '員工固定金額',
+  I: '勞健保／退休金', C: '自動計算', S: '小計', R: '結果', O: '輸出／頁面'
+};
+const COLS = ['① 公式參數', '② 每月／人數輸入', '③ 員工固定金額', '④ 自動計算', '⑤ 小計', '⑥ 結果', '⑦ 輸出'];
+const by = {}; NODES.forEach(n => by[n.id] = n);
+const kids = {}; NODES.forEach(n => n.deps.forEach(d => (kids[d] = kids[d] || []).push(n.id)));
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const $ = id => document.getElementById(id);
+
+function hrefFor(n, i) {
+  const g = n.where[i].go;
+  if (g.url) return BASE + g.url;
+  return BASE + 'index.html#goto=' + encodeURIComponent(n.id + ':' + i);
+}
+
+// ── 圖 ──
+const NW = 156, NH = 30, GAP = 7, COLW = 206, TOP = 44, LEFT = 16, GH = 22;
+const pos = {};
+(function build() {
+  const colY = COLS.map(() => TOP), lastG = {}; let heads = '', edges = '', nodes = '';
+  COLS.forEach((c, i) => heads += `<text class="colhead" x="${LEFT + i * COLW}" y="24">${c}</text>`);
+  NODES.forEach(n => {
+    if (lastG[n.col] !== n.g) { colY[n.col] += (lastG[n.col] ? 10 : 0) + GH; lastG[n.col] = n.g; n.head = true; }
+    pos[n.id] = { x: LEFT + n.col * COLW, y: colY[n.col] }; colY[n.col] += NH + GAP;
+  });
+  NODES.forEach(n => {
+    const p = pos[n.id];
+    if (n.head) heads += `<text class="grphead" x="${p.x}" y="${p.y - 7}">${esc(G[n.g])}</text>`;
+    n.deps.forEach(d => {
+      const a = pos[d]; if (!a) return;
+      const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = p.x, y2 = p.y + NH / 2, mx = (x1 + x2) / 2;
+      edges += `<path class="edge" data-from="${esc(d)}" data-to="${esc(n.id)}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`;
+    });
+    const short = n.label.length > 11 ? n.label.slice(0, 11) + '…' : n.label;
+    nodes += `<g class="node" tabindex="0" role="button" aria-label="${esc(n.label)}" data-id="${esc(n.id)}" transform="translate(${p.x},${p.y})">
+      <title>${esc(n.label)}</title>
+      <rect class="box" width="${NW}" height="${NH}" rx="7" style="stroke:var(--g${n.g})"/>
+      <rect width="6" height="${NH}" rx="3" style="fill:var(--g${n.g})"/>
+      <text x="14" y="${NH / 2 + 4.5}">${esc(short)}</text></g>`;
+  });
+  const w = LEFT * 2 + (COLS.length - 1) * COLW + NW, h = Math.max(...colY) + 16;
+  $('canvas').innerHTML = `<svg id="svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${heads}${edges}${nodes}</svg>`;
+  $('legend').innerHTML = Object.entries(G).map(([k, v]) => `<span><i style="background:var(--g${k})"></i>${v}</span>`).join('');
+})();
+
+function walk(id, f, acc) { (f(id) || []).forEach(x => { if (!acc.has(x)) { acc.add(x); walk(x, f, acc); } }); return acc; }
+function select(id, scroll) {
+  const svg = $('svg');
+  svg.querySelectorAll('.on,.sel,.up,.down').forEach(e => e.classList.remove('on', 'sel', 'up', 'down'));
+  if (!id) { svg.classList.remove('dim'); panel(null); return; }
+  const up = walk(id, x => by[x] ? by[x].deps : [], new Set()), down = walk(id, x => kids[x], new Set());
+  svg.classList.add('dim');
+  [id, ...up, ...down].forEach(x => { const g = svg.querySelector(`.node[data-id="${CSS.escape(x)}"]`); if (g) g.classList.add('on'); });
+  const sel = svg.querySelector(`.node[data-id="${CSS.escape(id)}"]`); sel.classList.add('sel');
+  svg.querySelectorAll('.edge').forEach(e => {
+    const f = e.dataset.from, t = e.dataset.to;
+    if ((t === id || up.has(t)) && up.has(f)) e.classList.add('on', 'up');
+    else if ((f === id || down.has(f)) && down.has(t)) e.classList.add('on', 'down');
+  });
+  panel(id);
+  if (scroll) {
+    const c = $('canvas'), p = pos[id];
+    c.scrollTo({ left: Math.max(0, p.x - c.clientWidth / 2 + NW / 2), top: Math.max(0, p.y - c.clientHeight / 2), behavior: 'smooth' });
+  }
+}
+const chips = ids => ids.length ? ids.map(x => `<button type="button" class="chip" data-go="${esc(x)}">${esc(by[x].label)}</button>`).join('') : '<span class="note">（無）</span>';
+function panel(id) {
+  const p = $('panel');
+  if (!id) {
+    p.innerHTML = `<span class="badge" style="background:var(--ink)">說明</span><h2>從右邊往左看最快</h2>
+      <p>想知道「實領」為什麼是這個數字？點最右邊的項目，藍線會一路標出它用到的每個數字。想知道改一個數字會影響什麼？點左邊的項目看橘線。</p>
+      <div class="sec"><b>常用項目</b>${chips(['實領', 'B', '加班費', '全勤獎金實發', '帶班人數津貼', '考試津貼'])}</div>`;
+    return;
+  }
+  const n = by[id];
+  const go = n.where.map((w, i) => `<div class="go"><span>${esc(w.text)}</span><a href="${esc(hrefFor(n, i))}" target="_blank" rel="noopener">前往 →</a></div>`).join('');
+  p.innerHTML = `<span class="badge" style="background:var(--g${n.g})">${esc(G[n.g])}</span>
+    <h2>${esc(n.label)}</h2><div>${esc(n.desc)}</div>
+    ${n.formula ? `<div class="sec"><b>公式／預設值</b><div class="formula">${esc(n.formula)}</div></div>` : ''}
+    <div class="sec"><b>用到（上游）</b>${chips(n.deps)}</div>
+    <div class="sec"><b>影響（下游）</b>${chips(kids[id] || [])}</div>
+    <div class="sec"><b>位置</b>${go}<div class="note">薪資系統頁面需要先登入，登入後會自動跳到這個欄位。</div></div>
+    <div class="sec"><b>誰可以改</b>${esc(n.who)}</div>`;
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-go]'); if (c) { select(c.dataset.go, true); return; }
+  const g = e.target.closest('.node'); if (g) { select(g.dataset.id, false); return; }
+  if (e.target.closest('#canvas') && (e.target.tagName === 'svg' || e.target.id === 'canvas')) select(null);
+});
+document.addEventListener('keydown', e => {
+  const g = e.target.closest && e.target.closest('.node');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(g.dataset.id, false); }
+});
+$('q').addEventListener('input', e => {
+  const q = e.target.value.trim(); if (!q) return;
+  const hit = NODES.find(n => n.label.includes(q) || n.id.includes(q)); if (hit) select(hit.id, true);
+});
+
+// ── 位置總表 ──
+(function table() {
+  let html = '<thead><tr><th>項目</th><th>公式／說明</th><th>用到（上游）</th><th>影響（下游）</th><th>位置</th><th>誰可以改</th></tr></thead><tbody>';
+  COLS.forEach((c, i) => {
+    html += `<tr class="grp"><td colspan="6">${c}</td></tr>`;
+    NODES.filter(n => n.col === i).forEach(n => {
+      html += `<tr><td><button type="button" class="chip" data-go="${esc(n.id)}">${esc(n.label)}</button></td>
+        <td class="f">${esc(n.formula || n.desc)}</td>
+        <td>${n.deps.map(d => esc(by[d].label)).join('、') || '—'}</td>
+        <td>${(kids[n.id] || []).map(d => esc(by[d].label)).join('、') || '—'}</td>
+        <td>${n.where.map((w, j) => `<a href="${esc(hrefFor(n, j))}" target="_blank" rel="noopener">${esc(w.text)}</a>`).join('<br>')}</td>
+        <td>${esc(n.who)}</td></tr>`;
+    });
+  });
+  $('tbl').innerHTML = html + '</tbody>';
+})();
+select('實領', false);
+</script>
+
+</body>
+</html>

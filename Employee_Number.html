@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kidcastle 員工編號對照表</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",Arial,sans-serif;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  min-height:100vh; color:#1e293b; padding:24px 16px;
+}
+.wrap { max-width:920px; margin:0 auto; }
+header { text-align:center; color:#fff; margin-bottom:22px; }
+header .back { display:inline-block; color:#fff; text-decoration:none; font-size:14px; opacity:.85; margin-bottom:8px; }
+header .back:hover { text-decoration:underline; opacity:1; }
+header h1 { font-size:28px; letter-spacing:1px; text-shadow:0 2px 8px rgba(0,0,0,.2); margin-bottom:4px; }
+header .sub { font-size:14px; opacity:.9; }
+
+.card {
+  background:#fff; border-radius:16px; padding:22px;
+  box-shadow:0 16px 40px rgba(0,0,0,.18); margin-bottom:18px;
+}
+
+.controls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.controls input, .controls select {
+  padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:9px;
+  font-size:14px; font-family:inherit; background:#f8fafc;
+}
+.controls input { flex:1; min-width:180px; }
+.controls input:focus, .controls select:focus {
+  outline:none; border-color:#667eea; background:#fff;
+  box-shadow:0 0 0 3px rgba(102,126,234,.15);
+}
+.controls .stat { font-size:13px; color:#64748b; }
+.controls .stat b { color:#1a202c; }
+.controls button {
+  padding:9px 14px; border:none; border-radius:9px;
+  background:#1e293b; color:#fff; font-weight:600; font-size:13px;
+  cursor:pointer; font-family:inherit;
+}
+.controls button.print { background:#475569; }
+.controls button:hover { transform:translateY(-1px); }
+
+table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
+thead th {
+  background:linear-gradient(135deg,#4472C4,#2E5984); color:#fff;
+  padding:11px 14px; text-align:left; font-weight:700;
+  position:sticky; top:0; z-index:5;
+}
+thead th:first-child { border-top-left-radius:10px; }
+thead th:last-child { border-top-right-radius:10px; }
+tbody td { padding:10px 14px; border-bottom:1px solid #f1f5f9; }
+tbody tr:nth-child(even) td { background:#fafbfd; }
+tbody tr:hover td { background:#EEF2FF; }
+.eid {
+  font-family:'Courier New',monospace; font-weight:700;
+  background:#FEF3C7; color:#92400E;
+  padding:4px 10px; border-radius:999px;
+  display:inline-block; font-size:13px;
+}
+.campus-chip {
+  display:inline-block; padding:3px 10px; border-radius:999px;
+  font-size:12px; font-weight:700;
+}
+.campus-chip.ta { background:#DBEAFE; color:#1E40AF; }
+.campus-chip.zj { background:#FFF1E5; color:#B45309; }
+.campus-chip.kc { background:#F3E8FF; color:#6B21A8; }
+.pos-chip {
+  display:inline-block; padding:2px 8px; border-radius:5px;
+  font-size:11px; font-weight:600; background:#F1F5F9; color:#475569;
+}
+.pos-chip.主任 { background:#FEF3C7; color:#92400E; }
+.pos-chip.行政 { background:#E0E7FF; color:#3730A3; }
+.empty { padding:50px; text-align:center; color:#94a3b8; font-style:italic; }
+.loading { padding:50px; text-align:center; color:#64748b; }
+.loading .spin {
+  width:36px; height:36px; border:4px solid #c7d2fe;
+  border-top-color:#667eea; border-radius:50%;
+  animation:sp 1s linear infinite; margin:0 auto 10px;
+}
+@keyframes sp { to { transform:rotate(360deg); } }
+.alert { padding:12px 14px; border-radius:9px; font-size:13px; margin-bottom:14px; }
+.alert.error { background:#FEF2F2; color:#991B1B; border-left:3px solid #DC2626; }
+
+.help {
+  margin-top:12px; padding:12px 14px;
+  background:#F0FDF4; border-left:3px solid #10B981;
+  border-radius:8px; font-size:13px; color:#065F46; line-height:1.7;
+}
+
+footer.note {
+  text-align:center; color:rgba(255,255,255,.85);
+  font-size:12px; margin-top:18px; line-height:1.7;
+}
+
+@media print {
+  body { background:#fff !important; padding:0; }
+  header { color:#1a202c; }
+  header .back, .controls, .help, footer.note { display:none !important; }
+  .card { box-shadow:none; }
+  thead th { background:#1e293b !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  @page { size:A4 portrait; margin:8mm; }
+}
+
+@media (max-width:640px) {
+  table { font-size:12px; }
+  tbody td, thead th { padding:8px 10px; }
+  .eid { font-size:11px; padding:3px 7px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="homepage.html" class="back">← 返回首頁</a>
+    <h1>🔍 員工編號對照表</h1>
+    <div class="sub">Employee ID Reference · Kidcastle 林口校・國中部</div>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <input type="text" id="search" placeholder="🔎 搜尋姓名 / 英文名 / 編號…" autofocus>
+      <select id="campus">
+        <option value="all">全部校區</option>
+        <option value="林口校">🏫 林口校</option>
+        <option value="國中部">🏰 國中部</option>
+      </select>
+      <select id="status">
+        <option value="active">在職</option>
+        <option value="all">全部</option>
+        <option value="resigned">離職</option>
+      </select>
+      <span class="stat">顯示 <b id="count">0</b> / <b id="total">0</b> 位</span>
+      <button class="print" onclick="window.print()">🖨 列印</button>
+    </div>
+
+    <div id="result">
+      <div class="loading">
+        <div class="spin"></div>
+        <div>正在從雲端讀取…</div>
+      </div>
+    </div>
+
+    <div class="help">
+      💡 <b>使用方式：</b> 找到自己的姓名 → 抄下「員工編號」（如 TA005）→ 回到首頁進入您所屬校區 → 用該編號做為帳號登入即可查詢薪資條。<br>
+      🔐 預設密碼為員工編號小寫（如 <code>ta005</code>），首次登入後請至「修改我的密碼」變更。
+    </div>
+  </div>
+
+  <footer class="note">
+    Kidcastle Salary System · 員工編號對照表 v1.0
+  </footer>
+</div>
+
+<script>
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxipSVJFWZTjy5Kw8JcHYukt9NLPY2p2Z88hNOV-sIe1M82wY1SsGYFXjrRr6sfXYc/exec';
+let EMPLOYEES = [];
+const $ = id => document.getElementById(id);
+
+async function loadData() {
+  try {
+    const r = await fetch(CLOUD_URL + '?action=read&_=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || '雲端錯誤');
+    EMPLOYEES = (j.data && j.data.employees) || [];
+    $('total').textContent = EMPLOYEES.length;
+    render();
+  } catch (e) {
+    $('result').innerHTML = `<div class="alert error">⚠ 雲端讀取失敗：${e.message}<br><small>請確認網路連線或聯絡管理員。</small></div>`;
+  }
+}
+
+function render() {
+  const q = ($('search').value || '').trim().toLowerCase();
+  const cam = $('campus').value;
+  const stat = $('status').value;
+  let list = EMPLOYEES.slice();
+  if (cam !== 'all') list = list.filter(e => e['校區'] === cam);
+  if (stat === 'active')   list = list.filter(e => e['在職狀態'] === '在職');
+  if (stat === 'resigned') list = list.filter(e => e['在職狀態'] !== '在職');
+  if (q) list = list.filter(e =>
+    String(e['員工編號']||'').toLowerCase().includes(q) ||
+    String(e['員工姓名']||'').toLowerCase().includes(q) ||
+    String(e['英文姓名']||'').toLowerCase().includes(q)
+  );
+  list.sort((a, b) => {
+    const cc = String(a['校區']).localeCompare(String(b['校區']));
+    if (cc) return cc;
+    return String(a['員工編號']).localeCompare(String(b['員工編號']));
+  });
+  $('count').textContent = list.length;
+  if (!list.length) {
+    $('result').innerHTML = '<div class="empty">沒有符合條件的員工</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>校區</th><th>員工編號</th><th>姓名</th><th>英文名</th><th>職位</th><th>在職狀態</th></tr></thead><tbody>';
+  for (const e of list) {
+    const ccls = e['校區'] === '林口校' ? 'ta' : e['校區'] === '國中部' ? 'kc' : 'zj';
+    const pcls = (e['職位']||'').replace(/\s+/g,'');
+    html += `<tr>
+      <td><span class="campus-chip ${ccls}">${e['校區']||'—'}</span></td>
+      <td><span class="eid">${e['員工編號']||'—'}</span></td>
+      <td><b>${e['員工姓名']||'—'}</b></td>
+      <td>${e['英文姓名'] || '—'}</td>
+      <td><span class="pos-chip ${pcls}">${e['職位']||'—'}</span></td>
+      <td>${e['在職狀態']||'—'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  $('result').innerHTML = html;
+}
+
+$('search').addEventListener('input', render);
+$('campus').addEventListener('change', render);
+$('status').addEventListener('change', render);
+
+loadData();
+</script>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261022V2010</div>
+</body>
+</html>
