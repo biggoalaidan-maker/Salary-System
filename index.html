@@ -11466,6 +11466,12 @@
   // 每次修改系統：在陣列「最上面」新增一筆。版本格式 VyyyymmddVhhmm（例：V20261009V2100 = 2026/10/09 21:00）
   const APP_CHANGELOG = [
     {
+      version: 'V20261024V1230', date: '2026-10-24 12:30',
+      changes: [
+        '所有頁面（含薪資條列印）加上浮水印「BigGoalAidan Salary System」：斜向重複、淡灰色，不影響點選與操作'
+      ]
+    },
+    {
       version: 'V20261024V1200', date: '2026-10-24 12:00',
       changes: [
         '系統搬遷到新的 Google 帳號 biggoalaidan@gmail.com：雲端網址改為新部署（AKfycbyMwyCq…），寄件人改為 biggoalaidan@gmail.com',
@@ -12100,6 +12106,13 @@
 })();
 </script>
 
+
+<!-- WATERMARK:BigGoalAidan -->
+<style id="wmStyle">
+#wmMark{position:fixed;inset:0;z-index:9990;pointer-events:none;user-select:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='460' height='300'><text x='230' y='150' text-anchor='middle' transform='rotate(-30 230 150)' font-family='Arial,Helvetica,sans-serif' font-size='26' font-weight='700' fill='%23475569' fill-opacity='0.13'>BigGoalAidan Salary System</text></svg>");background-repeat:repeat;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+@media print{#wmMark{position:fixed;inset:0;}}
+</style>
+<div id="wmMark" aria-hidden="true"></div>
 </body>
 
 </html>

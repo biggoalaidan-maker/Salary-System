@@ -3,6 +3,10 @@
 版本格式：`VyyyymmddVhhmm`（例：V20261009V2100 = 2026/10/09 21:00）
 每次修改：在最上面新增一筆，並同步更新 index.html 的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
 
+## V20261024V1230（2026-10-24 12:30）
+- 所有頁面（index、員工編號對照表、員工薪資查詢、公式設定、變數關係圖、兩個遷移工具）加上浮水印「BigGoalAidan Salary System」，列印／存 PDF 的薪資條也會出現
+- 僅前端，不需重新部署 Code.gs
+
 ## V20261024V1200（2026-10-24 12:00）
 - 系統搬遷到新的 Google 帳號 biggoalaidan@gmail.com：雲端網址改為新部署（AKfycbyMwyCq…），寄件人改為 biggoalaidan@gmail.com
 - 已更新：index.html、Employee_Number.html、Employee_Salary_View.html、Formula_Settings.html、HireDate_Migrate.html、Salary_Migrate.html、Variable_Map.html、變數位置圖與關係圖.md
