@@ -3,6 +3,11 @@
 版本格式：`VyyyymmddVhhmm`（例：V20261009V2100 = 2026/10/09 21:00）
 每次修改：在最上面新增一筆，並同步更新 index.html 的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
 
+## V20261024V1200（2026-10-24 12:00）
+- 系統搬遷到新的 Google 帳號 biggoalaidan@gmail.com：雲端網址改為新部署（AKfycbyMwyCq…），寄件人改為 biggoalaidan@gmail.com
+- 已更新：index.html、Employee_Number.html、Employee_Salary_View.html、Formula_Settings.html、HireDate_Migrate.html、Salary_Migrate.html、Variable_Map.html、變數位置圖與關係圖.md
+- 後端需同步：新帳號的 Code.gs 設定 MAIL_SENDER = 'biggoalaidan@gmail.com'，並填入全新的 MAIL_KEY、ADMIN_KEY；Receipt.gs 不需修改（RECEIPT_SECRET 會自動重新產生）
+
 ## V20261023V1530（2026-10-23 15:30）
 - 新增老闆專用「☠ 清空全部員工資料」（總覽 → 🔧 管理工具）：需 Boss 密碼並輸入「刪除全部」，清除所有校區全部員工與全部月份薪資紀錄（含已隱藏的莊敬）
 - 清空前先下載本機備份並備份到雲端硬碟 Kidcastle_Backups，任一份失敗就不刪除；只在按按鈕時執行

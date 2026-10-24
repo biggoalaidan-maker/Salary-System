@@ -4434,7 +4434,7 @@
   // =========================================================================
   // Default Apps Script Web App URL — shared across all users by default.
   // Users can override via the「☁ 雲端設定」dialog (writes to localStorage).
-  const DEFAULT_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxipSVJFWZTjy5Kw8JcHYukt9NLPY2p2Z88hNOV-sIe1M82wY1SsGYFXjrRr6sfXYc/exec';
+  const DEFAULT_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyMwyCq4w-tFWK3DHirPBbzga8dOdbzMAYXAcyCLEIoeTKujuAjt-ZByfWQjSm20zqY/exec';
   const CLOUD_URL_KEY = 'kc_cloud_url_v1';   // optional per-user override
   function getCloudUrl() {
     try { return localStorage.getItem(CLOUD_URL_KEY) || DEFAULT_CLOUD_URL; } catch(e) { return DEFAULT_CLOUD_URL; }
@@ -6454,7 +6454,7 @@
   // ✉ Email 薪資條（單封 / 批次）— 透過 Apps Script 的 send_payslip 動作寄出
   // 寄件人固定為 MAIL_SENDER；Apps Script 端需加上 Payslip_Mail.gs 的程式碼
   // ==========================================================================
-  const MAIL_SENDER = 'wufatw@gmail.com';
+  const MAIL_SENDER = 'biggoalaidan@gmail.com';
   const MAIL_KEY_STORE = 'kc_mail_key_v1';
   let _mailRows = [];          // [{eid, name, campus, email, sentInfo, hasSal}]
   let _mailSelected = new Set();
@@ -11466,6 +11466,13 @@
   // 每次修改系統：在陣列「最上面」新增一筆。版本格式 VyyyymmddVhhmm（例：V20261009V2100 = 2026/10/09 21:00）
   const APP_CHANGELOG = [
     {
+      version: 'V20261024V1200', date: '2026-10-24 12:00',
+      changes: [
+        '系統搬遷到新的 Google 帳號 biggoalaidan@gmail.com：雲端網址改為新部署（AKfycbyMwyCq…），寄件人改為 biggoalaidan@gmail.com',
+        '請老闆確認新 Apps Script 的 MAIL_SENDER、MAIL_KEY、ADMIN_KEY 已設定，並把舊資料檔放到新帳號的雲端硬碟'
+      ]
+    },
+    {
       version: 'V20261023V1530', date: '2026-10-23 15:30',
       changes: [
         '新增老闆專用「☠ 清空全部員工資料」（總覽 → 🔧 管理工具）：需 Boss 密碼並輸入「刪除全部」，清除所有校區（林口校、國中部、已隱藏的莊敬）全部員工與全部月份薪資紀錄',
@@ -11578,7 +11585,7 @@
       version: 'V20261018V1930', date: '2026-10-18 19:30',
       changes: [
         '「✉ 寄送薪資條」視窗新增「🧪 寄送測試信」按鈕：內容只有「這是Kidcastle莊敬同安校的薪水條系統寄送測試」，不含任何薪資資料、不附 PDF，也不會標記為「已寄」',
-        '測試信寄給左側勾選的員工；沒有勾選時寄給寄件人 wufatw@gmail.com 自己',
+        '測試信寄給左側勾選的員工；沒有勾選時寄給寄件人 biggoalaidan@gmail.com 自己',
         '後端（Code.gs）新增 send_test_mail 動作；移除薪資條 Email 底部的員工薪資查詢連結'
       ]
     },
@@ -11910,7 +11917,7 @@
     { id: '實領', label: '實領（餘款轉帳）', col: 5, g: 'R', desc: '最後轉帳給員工的金額', formula: '實領 = A + B − C − D', deps: ['A', 'B', 'C', 'D'], where: [W_PS], who: '自動' },
     // ⑦ 輸出
     { id: '薪水條', col: 6, g: 'O', desc: '每位員工每月的薪資條（可列印／存 PDF）', deps: ['實領', 'A', 'B', 'C', 'D', '本月備註'], where: [W_PS], who: '老闆、員工本人' },
-    { id: 'Email薪資條', label: 'Email 薪資條', col: 6, g: 'O', desc: '寄送薪資條給員工（寄件人 wufatw@gmail.com）', deps: ['薪水條'], where: [W_MAIL], who: '老闆' },
+    { id: 'Email薪資條', label: 'Email 薪資條', col: 6, g: 'O', desc: '寄送薪資條給員工（寄件人 biggoalaidan@gmail.com）', deps: ['薪水條'], where: [W_MAIL], who: '老闆' },
     { id: '員工查詢', label: '員工薪資查詢', col: 6, g: 'O', desc: '員工用身份證字號登入查自己的薪資條（每月開放日起 7 天）', deps: ['薪水條', 'UNLOCK_DAY'], where: [W_VIEW], who: '員工本人' },
     { id: 'Excel匯出', label: 'Excel 匯出', col: 6, g: 'O', desc: '匯出 Salary Data.xlsx 等報表', deps: ['應發薪資', '實領'], where: [{ text: '📝 主管輸入 →「⬇ 匯出 Salary Data.xlsx」', go: { tab: 'manager' } }], who: '主管、老闆' },
     { id: '總覽', label: '總覽儀表板', col: 6, g: 'O', desc: '全校薪資統計、圖表', deps: ['應發薪資', '實領'], where: [W_OVER], who: '主管、老闆' }
