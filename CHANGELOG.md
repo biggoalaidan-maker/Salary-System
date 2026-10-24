@@ -3,6 +3,20 @@
 版本格式：`VyyyymmddVhhmm`（例：V20261009V2100 = 2026/10/09 21:00）
 每次修改：在最上面新增一筆，並同步更新 index.html 的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
 
+## V20261024V1330（2026-10-24 13:30）
+- 清除檔案內建的員工個資：index.html 的 DEFAULT_DATA（27 位員工與薪資）、薪資遷移表（MIG_TA／MIG_ZJ）、到職日修正表（HIRE_DATE_FIXES）、身份證字號匯入表（ID_NUMBER_FIXES）全部清空，改為空白範本格式；HireDate_Migrate.html、Salary_Migrate.html 內的姓名與薪資表一併清空
+- 畫面上的範例姓名改為「王小明」
+- 雲端資料不受影響（需由老闆在系統內自行清除）；雲端沒有資料時系統從空白開始
+- 僅前端，不需重新部署 Code.gs
+
+## V20261024V1300（2026-10-24 13:00）
+- 安全性：index.html 不再內建 boss 等預設帳號的明碼密碼。boss 首次登入使用一次性初始密碼（程式碼只放雜湊），登入後強制先設定新密碼（至少 8 碼、含英文字母與數字）
+- 新密碼以加鹽 SHA-256 存在雲端資料 `accountAuth`（key 例：`1:boss`），各電腦共用、不存明碼；帳號管理對預設帳號不顯示、不匯出密碼，老闆可替主管重設（對方下次登入需再改）
+- 其他預設帳號（admin1、admin2、manager1、manager2、teacher1）預設未啟用，需由 boss 在「帳號管理」編輯並設定密碼；老闆自行新增的帳號維持原做法（存在該瀏覽器 localStorage）
+- Formula_Settings.html 的 Boss 解鎖改為驗證雲端雜湊
+- 忘記 boss 密碼：到雲端資料檔刪除 `accountAuth` 裡對應的 key（例：`1:boss`），即可回到一次性初始密碼
+- 僅前端（index.html、Formula_Settings.html），不需重新部署 Code.gs
+
 ## V20261024V1230（2026-10-24 12:30）
 - 所有頁面（index、員工編號對照表、員工薪資查詢、公式設定、變數關係圖、兩個遷移工具）加上浮水印「BigGoalAidan Salary System」，列印／存 PDF 的薪資條也會出現
 - 僅前端，不需重新部署 Code.gs

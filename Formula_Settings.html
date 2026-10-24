@@ -628,22 +628,53 @@ function resetDefaults() {
   cfg = clone(DEFAULTS); render();
 }
 
-// ---------- boss unlock ----------
-function bossPasswords() {
-  const pw = [];
-  try {
-    const c = JSON.parse(localStorage.getItem('kc_credentials_v1') || 'null');
-    if (c) ['1','2'].forEach(s => (c[s] && c[s].users || []).forEach(u => { if (u.username === 'boss') pw.push(u.password); }));
-  } catch(_) {}
-  if (!pw.length) pw.push('kidcastle2026');   // 與 index.html DEFAULT_CREDS 相同
-  return pw;
+// ---------- boss unlock（驗證雲端的加鹽雜湊，規則同 index.html）----------
+const INIT_PWD_SALT = 'kc-init-v1';
+const BOSS_INIT_HASH = 'f491bccb427df7e38e2ecc9b83f25b00bd45aa1ad2b9892240031a799031413c';
+function sha256hex(ascii){
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var mp=Math.pow,mw=mp(2,32),i,j,result='',words=[],bl=ascii.length*8;
+  var hash=sha256hex.h=sha256hex.h||[],k=sha256hex.k=sha256hex.k||[],pc=k.length,isc={};
+  for(var c=2;pc<64;c++){ if(!isc[c]){ for(i=0;i<313;i+=c) isc[i]=c; hash[pc]=(mp(c,.5)*mw)|0; k[pc++]=(mp(c,1/3)*mw)|0; } }
+  ascii+='\x80';
+  while(ascii.length%64-56) ascii+='\x00';
+  for(i=0;i<ascii.length;i++){ j=ascii.charCodeAt(i); if(j>>8) return ''; words[i>>2]|=j<<((3-i)%4)*8; }
+  words[words.length]=((bl/mw)|0); words[words.length]=(bl);
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oh=hash;
+    hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];
+      var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+
+        (w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(t1+t2)|0].concat(hash);
+      hash[4]=(hash[4]+t1)|0;
+    }
+    for(i=0;i<8;i++) hash[i]=(hash[i]+oh[i])|0;
+  }
+  for(i=0;i<8;i++) for(j=3;j+1;j--){ var b=(hash[i]>>(j*8))&255; result+=((b<16)?0:'')+b.toString(16); }
+  return result;
+}
+function pwHash(salt, pwd){ return sha256hex(unescape(encodeURIComponent(String(salt) + ':' + String(pwd)))); }
+async function verifyBoss(p) {
+  const d = await cloudGet();
+  const auth = d.accountAuth || {};
+  const recs = ['1', '2', '3'].map(s => auth[s + ':boss']).filter(Boolean);
+  if (recs.length) return recs.some(r => pwHash(r.s, p) === r.h);
+  return pwHash(INIT_PWD_SALT, p) === BOSS_INIT_HASH;   // 尚未有人設定過新密碼
 }
 function openUnlock() { $('pwd').value = ''; $('pwdErr').textContent = ''; $('unlockOv').classList.add('show'); setTimeout(() => $('pwd').focus(), 60); }
 function closeUnlock() { $('unlockOv').classList.remove('show'); }
-function doUnlock() {
+async function doUnlock() {
   const p = ($('pwd').value || '').trim();
   if (!p) { $('pwdErr').textContent = '請輸入密碼'; return; }
-  if (!bossPasswords().includes(p)) { $('pwdErr').textContent = '密碼錯誤'; return; }
+  $('pwdErr').textContent = '驗證中…';
+  let ok = false;
+  try { ok = await verifyBoss(p); }
+  catch (e) { $('pwdErr').textContent = '無法連線雲端驗證：' + e.message; return; }
+  if (!ok) { $('pwdErr').textContent = '密碼錯誤'; return; }
+  $('pwdErr').textContent = '';
   unlocked = true; closeUnlock(); render(); toast('已解鎖，可以開始修改', 'success');
 }
 $('pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doUnlock(); });
@@ -657,7 +688,7 @@ function toast(msg, type) {
 
 load();
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261022V2010</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1300</div>
 <!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
 <style>
   .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }

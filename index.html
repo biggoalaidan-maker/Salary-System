@@ -2965,7 +2965,7 @@
         <p style="margin:0 0 12px;color:#0C4A6E;font-size:13px;background:#F0F9FF;padding:8px 12px;border-radius:6px;border-left:3px solid #0EA5E9;line-height:1.7;">
           ① 上傳 Excel（.xlsx / .xls）或 CSV，或直接從 Excel 複製貼到下方。Google 表單回覆下載成 .xlsx / .csv 也可以直接用。<br>
           ② 需要有 <b>Email</b> 欄，以及 <b>員工編號</b> 或 <b>姓名</b>（中文或英文皆可）其中一欄；有「校區／分校」欄會用來區分同名員工。<br>
-          ③ 姓名可以中英混寫，例如「Summer游晏慈」會對到「游晏慈」。同一人出現多次以最後一筆為準。<br>
+          ③ 姓名可以中英混寫，例如「Summer王小明」會對到「王小明」。同一人出現多次以最後一筆為準。<br>
           ④ 沒有標題列時，每行視為：<b>姓名、Email</b>。按「⬇ 下載員工 Email 範本」可取得目前所有員工的名單，直接填 Email 再上傳最方便。
         </p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
@@ -2977,7 +2977,7 @@
         </div>
         <div class="field">
           <label>或直接貼上文字（可從 Excel 複製貼上）</label>
-          <textarea id="bulkMailText" rows="5" oninput="if (this.value.trim()) document.getElementById('bulkMailFile').value = ''" placeholder="員工姓名,校區,Email&#10;王小明,林口校,tom@example.com&#10;Summer游晏慈,國中部,summer@example.com" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Courier New',monospace;background:#f8fafc;resize:vertical;"></textarea>
+          <textarea id="bulkMailText" rows="5" oninput="if (this.value.trim()) document.getElementById('bulkMailFile').value = ''" placeholder="員工姓名,校區,Email&#10;王小明,林口校,tom@example.com&#10;Summer王小明,國中部,summer@example.com" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Courier New',monospace;background:#f8fafc;resize:vertical;"></textarea>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <button class="btn-mini primary" onclick="parseBulkMail()" style="background:linear-gradient(135deg,#0EA5E9,#0369A1);">🔍 解析並預覽</button>
@@ -3550,7 +3550,7 @@
     <div class="body">
       <div class="field">
         <label>負責人 Owner Name</label>
-        <input type="text" id="rcOwnerName" placeholder="例：呂理平">
+        <input type="text" id="rcOwnerName" placeholder="例：王小明">
       </div>
       <div class="field">
         <label>公司全銜 Company Name</label>
@@ -3698,31 +3698,117 @@
   // ==========================================================================
   // 帳號資料 — 預設值嵌入於下；localStorage 覆蓋
   // ==========================================================================
+  // ==========================================================================
+  // 帳號安全：預設帳號（boss、admin…）不再於程式碼內放明碼密碼
+  //  - boss 只內建「一次性初始密碼」的雜湊；首次登入必須先設定新密碼
+  //  - 新密碼以「加鹽 SHA-256」存在雲端資料 DATA.accountAuth（所有瀏覽器共用），不存明碼
+  //  - 其他預設帳號（admin1、manager1…）預設未啟用，需由 boss 在「帳號管理」設定密碼
+  //  - 老闆自行新增的帳號維持原本做法（存在該瀏覽器 localStorage）
+  // ==========================================================================
+  const INIT_PWD_SALT = 'kc-init-v1';
+  const BOSS_INIT_HASH = 'f491bccb427df7e38e2ecc9b83f25b00bd45aa1ad2b9892240031a799031413c';
+  function sha256hex(ascii){
+    function rr(v,a){return (v>>>a)|(v<<(32-a));}
+    var mp=Math.pow,mw=mp(2,32),i,j,result='',words=[],bl=ascii.length*8;
+    var hash=sha256hex.h=sha256hex.h||[],k=sha256hex.k=sha256hex.k||[],pc=k.length,isc={};
+    for(var c=2;pc<64;c++){ if(!isc[c]){ for(i=0;i<313;i+=c) isc[i]=c; hash[pc]=(mp(c,.5)*mw)|0; k[pc++]=(mp(c,1/3)*mw)|0; } }
+    ascii+='\x80';
+    while(ascii.length%64-56) ascii+='\x00';
+    for(i=0;i<ascii.length;i++){ j=ascii.charCodeAt(i); if(j>>8) return ''; words[i>>2]|=j<<((3-i)%4)*8; }
+    words[words.length]=((bl/mw)|0); words[words.length]=(bl);
+    for(j=0;j<words.length;){
+      var w=words.slice(j,j+=16),oh=hash;
+      hash=hash.slice(0,8);
+      for(i=0;i<64;i++){
+        var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];
+        var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+
+          (w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+        var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+        hash=[(t1+t2)|0].concat(hash);
+        hash[4]=(hash[4]+t1)|0;
+      }
+      for(i=0;i<8;i++) hash[i]=(hash[i]+oh[i])|0;
+    }
+    for(i=0;i<8;i++) for(j=3;j+1;j--){ var b=(hash[i]>>(j*8))&255; result+=((b<16)?0:'')+b.toString(16); }
+    return result;
+  }
+  function pwHash(salt, pwd){ return sha256hex(unescape(encodeURIComponent(String(salt) + ':' + String(pwd)))); }
+  function newSalt() {
+    const a = new Uint8Array(12);
+    try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); }
+    return Array.from(a).map(b => ('0' + b.toString(16)).slice(-2)).join('');
+  }
+  function _defUser(sid, username) {
+    const d = DEFAULT_CREDS[sid];
+    return d ? d.users.find(x => String(x.username).toLowerCase() === String(username).toLowerCase()) : null;
+  }
+  function isManagedAccount(sid, username) { return !!_defUser(sid, username); }
+  function authKey(sid, username) { return String(sid) + ':' + String(username).toLowerCase(); }
+  function authRecord(sid, username) {
+    try { return (DATA && DATA.accountAuth && DATA.accountAuth[authKey(sid, username)]) || null; } catch (e) { return null; }
+  }
+  function managedPwdOk(sid, username, pwd) {
+    pwd = String(pwd || '');
+    if (!pwd) return false;
+    const rec = authRecord(sid, username);
+    if (rec) return pwHash(rec.s, pwd) === rec.h;
+    const du = _defUser(sid, username);
+    return !!(du && du.initHash && pwHash(INIT_PWD_SALT, pwd) === du.initHash);
+  }
+  function accountPwdOk(sid, username, pwd) {
+    if (isManagedAccount(sid, username)) return managedPwdOk(sid, username, pwd);
+    const list = (CREDENTIALS[sid] || { users: [] }).users;
+    const u = list.find(x => String(x.username).toLowerCase() === String(username).toLowerCase());
+    return !!(u && String(u.password) === String(pwd));
+  }
+  function managedNeedsSetup(sid, username) { const r = authRecord(sid, username); return !r || !!r.must; }
+  function setManagedPasswordLocal(sid, username, pwd, must) {
+    if (!DATA.accountAuth || typeof DATA.accountAuth !== 'object') DATA.accountAuth = {};
+    const s = newSalt();
+    DATA.accountAuth[authKey(sid, username)] = { s: s, h: pwHash(s, pwd), t: new Date().toISOString(), must: !!must };
+  }
+  function managedStatusText(sid, username) {
+    const rec = authRecord(sid, username);
+    if (rec) return rec.must ? '⏳ 已重設，待首次登入改密碼' : '🔒 已設定（雲端雜湊，不顯示）';
+    const du = _defUser(sid, username);
+    return (du && du.initHash) ? '⏳ 尚未首次登入設定' : '🚫 未啟用（請編輯設定密碼）';
+  }
+  function exportPwdText(sid, u) { return isManagedAccount(sid, u.username) ? '（雲端雜湊，不匯出）' : u.password; }
+  function strongPwdError(pwd, username) {
+    pwd = String(pwd || '');
+    if (pwd.length < 8) return '密碼至少 8 碼';
+    if (!/[A-Za-z]/.test(pwd) || !/[0-9]/.test(pwd)) return '密碼需同時包含英文字母與數字';
+    const low = pwd.toLowerCase();
+    if (low === String(username || '').toLowerCase()) return '密碼不能與帳號相同';
+    if (['kidcastle2026', 'kidcastle', 'password', '12345678', 'admin1234'].includes(low)) return '這組密碼太容易被猜到，請換一組';
+    return '';
+  }
+
   const DEFAULT_CREDS = {
     "1": { // 林口校
       name: "林口校", code: "School 1", icon: "🏫", cls: "school1",
       users: [
-        { username: "boss",     password: "kidcastle2026", role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
-        { username: "admin1",   password: "admin1234",     role: "owner",   fullName: "行政主管 Admin",        email: "admin1@kidcastle.com" },
-        { username: "manager1", password: "mgr1234",       role: "manager", fullName: "王主任 Manager Wang",  email: "wang@kidcastle.com" },
-        { username: "manager2", password: "mgr5678",       role: "manager", fullName: "林主任 Manager Lin",   email: "lin@kidcastle.com" },
-        { username: "teacher1", password: "teach1234",     role: "manager", fullName: "陳老師 Teacher Chen",  email: "chen@kidcastle.com" }
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
+        { username: "admin1",   password: "",     role: "owner",   fullName: "行政主管 Admin",        email: "admin1@kidcastle.com" },
+        { username: "manager1", password: "",       role: "manager", fullName: "王主任 Manager Wang",  email: "wang@kidcastle.com" },
+        { username: "manager2", password: "",       role: "manager", fullName: "林主任 Manager Lin",   email: "lin@kidcastle.com" },
+        { username: "teacher1", password: "",     role: "manager", fullName: "陳老師 Teacher Chen",  email: "chen@kidcastle.com" }
       ]
     },
     "2": { // 莊敬校區
       name: "莊敬校區", code: "School 2", icon: "🎓", cls: "school2",
       users: [
-        { username: "boss",     password: "kidcastle2026", role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
-        { username: "admin2",   password: "admin5678",     role: "owner",   fullName: "行政主管 Admin",        email: "admin2@kidcastle.com" },
-        { username: "manager1", password: "mgr1234",       role: "manager", fullName: "張主任 Manager Zhang", email: "zhang@kidcastle.com" },
-        { username: "manager2", password: "mgr5678",       role: "manager", fullName: "李主任 Manager Lee",   email: "lee@kidcastle.com" },
-        { username: "teacher1", password: "teach1234",     role: "manager", fullName: "吳老師 Teacher Wu",    email: "wu@kidcastle.com" }
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
+        { username: "admin2",   password: "",     role: "owner",   fullName: "行政主管 Admin",        email: "admin2@kidcastle.com" },
+        { username: "manager1", password: "",       role: "manager", fullName: "張主任 Manager Zhang", email: "zhang@kidcastle.com" },
+        { username: "manager2", password: "",       role: "manager", fullName: "李主任 Manager Lee",   email: "lee@kidcastle.com" },
+        { username: "teacher1", password: "",     role: "manager", fullName: "吳老師 Teacher Wu",    email: "wu@kidcastle.com" }
       ]
     },
     "3": { // 國中部 — 預設只有老闆帳號，主管帳號請登入後在帳號管理新增
       name: "國中部", code: "School 3", icon: "🏰", cls: "school3",
       users: [
-        { username: "boss",     password: "kidcastle2026", role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" }
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" }
       ]
     }
   };
@@ -3742,6 +3828,13 @@
             const boss = (parsed["1"].users || []).find(x => x.username === 'boss');
             if (boss) parsed["3"].users = [JSON.parse(JSON.stringify(boss))];
           }
+          // 預設帳號的明碼一律清除（改由雲端雜湊驗證），並把清除後的結果寫回 localStorage
+          ['1', '2', '3'].forEach(sid => {
+            if (parsed[sid] && Array.isArray(parsed[sid].users)) {
+              parsed[sid].users.forEach(u => { if (isManagedAccount(sid, u.username)) { u.password = ''; } });
+            }
+          });
+          try { localStorage.setItem(CREDS_KEY, JSON.stringify(parsed)); } catch (e) {}
           return parsed;
         }
       }
@@ -3862,10 +3955,24 @@
       try {
         // 1) Check manager/owner accounts (CREDENTIALS)
         const list = CREDENTIALS[currentSchool].users;
-        let hit = list.find(x =>
-          String(x.username).toLowerCase() === u.toLowerCase() &&
-          String(x.password) === p
-        );
+        let hit = null;
+        const cand = list.find(x => String(x.username).toLowerCase() === u.toLowerCase());
+        if (cand && isManagedAccount(currentSchool, cand.username)) {
+          // 預設帳號：用雲端雜湊驗證。尚未設定個人密碼時只接受「一次性初始密碼」，登入後強制設定新密碼
+          try {
+            DATA = await loadData();
+          } catch (e) {
+            showError('無法連線雲端驗證帳號：' + e.message);
+            $('btnLogin').disabled = false;
+            $('btnLogin').textContent = '登入 Sign In';
+            return;
+          }
+          if (managedPwdOk(currentSchool, cand.username, p)) {
+            hit = Object.assign({}, cand, { password: p, managed: true, needsSetup: managedNeedsSetup(currentSchool, cand.username) });
+          }
+        } else if (cand && String(cand.password) === p) {
+          hit = cand;
+        }
         // 2) Fall back to employee accounts (DATA.employees scoped to this school)
         //    登入前 DATA 只是頁面內建的預設資料，必須先讀取雲端最新資料，才能比對真正的帳號／密碼（身份證字號或員工自設的新密碼）
         if (!hit) {
@@ -4061,6 +4168,12 @@
         setTimeout(openFirstEmail, 600);
       }
     }
+
+    // 預設管理帳號（boss 等）：尚未設定個人密碼，或被老闆重設後第一次登入 → 強制設定新密碼
+    if ((user.role === 'owner' || user.role === 'manager') && user.managed && user.needsSetup) {
+      _afterForcedPwd = null;
+      setTimeout(() => openChangeMyPassword(true), 600);
+    }
   }
 
   async function logout() {
@@ -4233,7 +4346,7 @@
     ];
   }
 
-  const DEFAULT_DATA = {"employees":[{"員工編號":"TA001","員工姓名":"陳明霞","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2010-08-01","在職狀態":"在職","底薪":31500,"全勤獎金":500,"年資津貼":4000,"主管津貼":0,"分校人數超額獎金":8500,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":1998,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA002","員工姓名":"廖月櫻","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2012-03-15","在職狀態":"在職","底薪":31500,"全勤獎金":500,"年資津貼":4000,"主管津貼":6000,"分校人數超額獎金":7200,"美語津貼":5500,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":4000,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":0,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA003","員工姓名":"鄭錦雪","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2011-09-01","在職狀態":"在職","底薪":31500,"全勤獎金":500,"年資津貼":4000,"主管津貼":0,"分校人數超額獎金":8500,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA004","員工姓名":"翁麗美","英文姓名":null,"校區":"林口校","職位":"主任","到職日":"2008-02-01","在職狀態":"在職","底薪":32500,"全勤獎金":500,"年資津貼":4000,"主管津貼":5000,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA005","員工姓名":"郭子綺","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2018-07-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":5000,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA006","員工姓名":"林錦雲","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2017-09-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":5000,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA007","員工姓名":"陳渝潔","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2019-09-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":1500,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA008","員工姓名":"吳鈺蘋","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2020-09-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"TA009","員工姓名":"陳允謙","英文姓名":"Charles","校區":"林口校","職位":"老師","到職日":"2024-11-11","在職狀態":"在職","底薪":29500,"全勤獎金":0,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":5000,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA010","員工姓名":"陳敬翔","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2024-11-11","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA011","員工姓名":"蕭宜帆","英文姓名":null,"校區":"林口校","職位":"主任","到職日":"2024-11-12","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2001,"主管津貼":5000,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA012","員工姓名":"廖繹雯","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2024-11-12","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2001,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA013","員工姓名":"謝明學","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2024-11-12","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2002,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA014","員工姓名":"蔡明孝","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2023-09-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2002,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA015","員工姓名":"吳芳芝","英文姓名":null,"校區":"林口校","職位":"行政","到職日":"2022-08-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2003,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA016","員工姓名":"呂學龍","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2021-08-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":2003,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"TA017","員工姓名":"楊蕙瑀","英文姓名":null,"校區":"林口校","職位":"老師","到職日":"2025-02-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"ZJ001","員工姓名":"李如蘋","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2009-03-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":4000,"主管津貼":0,"分校人數超額獎金":1600,"美語津貼":1100,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"ZJ002","員工姓名":"蕭羽儂","英文姓名":"Jessica","校區":"莊敬","職位":"主任","到職日":"2014-01-01","在職狀態":"在職","底薪":31500,"全勤獎金":500,"年資津貼":0,"主管津貼":10000,"分校人數超額獎金":0,"美語津貼":5000,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":3000,"勞保自付":738,"健保自付":2044,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"ZJ003","員工姓名":"黃玉華","英文姓名":null,"校區":"莊敬","職位":"主任","到職日":"2014-01-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":4000,"主管津貼":5000,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":9758,"帶班人數津貼":10240,"其他津貼":3500,"勞保自付":1349,"健保自付":0,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"ZJ004","員工姓名":"洪子彤","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2018-09-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"ZJ005","員工姓名":"吳湘晴","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2020-09-01","在職狀態":"在職","底薪":30500,"全勤獎金":500,"年資津貼":2000,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1349,"健保自付":1271,"退休金提撥":1998,"銀行帳號":null},{"員工編號":"ZJ006","員工姓名":"胡瑄曼","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2021-09-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"ZJ007","員工姓名":"蕭文華","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2022-09-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":0,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"ZJ008","員工姓名":"游晏慈","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2024-08-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"ZJ009","員工姓名":"何宥蓉","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2024-09-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null},{"員工編號":"ZJ010","員工姓名":"何革融","英文姓名":null,"校區":"莊敬","職位":"老師","到職日":"2024-09-01","在職狀態":"在職","底薪":29500,"全勤獎金":500,"年資津貼":0,"主管津貼":0,"分校人數超額獎金":0,"美語津貼":0,"英文輔導津貼":6000,"數學班津貼":0,"混班/混校津貼":0,"帶班人數津貼":0,"其他津貼":0,"勞保自付":1196,"健保自付":0,"退休金提撥":1772,"銀行帳號":null}],"salary":[{"月份":"11504","員工編號":"TA001","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA002","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA003","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA004","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA005","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA006","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA007","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA008","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA009","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA010","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA011","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA012","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA013","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA014","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA015","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA016","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"TA017","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ001","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ002","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ003","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ004","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ005","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ006","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ007","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ008","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ009","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null},{"月份":"11504","員工編號":"ZJ010","上班時數":184,"加班時數":0,"加班費":0,"請假時數":0,"請假扣款":0,"遲到次數":0,"遲到扣款":0,"獎金":0,"扣款":0,"特殊調整":0,"備註":null}]};
+  const DEFAULT_DATA = {"employees":[],"salary":[]};
 
   // -------- Data store (DATA = mutable, persisted to localStorage) --------
   const STORAGE_KEY = 'kc_salary_data_v1';
@@ -4553,7 +4666,9 @@
 
   async function resetData() {
     if (!confirm('確定要清除雲端資料、恢復原始資料嗎？\n（會將 Google Drive 中的薪資 JSON 改回預設值）')) return;
+    const _keepAuth = DATA && DATA.accountAuth;   // 帳號密碼雜湊不可因還原資料而消失
     DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    if (_keepAuth) DATA.accountAuth = _keepAuth;
     CHANGE_LOG = [];
     try {
       await cloudPost('write',     { data: DATA });
@@ -4704,32 +4819,8 @@
   // =========================================================================
   // 📥 Excel Salary Migration (boss-password gated)
   // =========================================================================
-  const MIG_TA = {
-    '陳明霞': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':5500,'混班/混校津貼':500,'勞保自付':2620,'退休金提撥':1998}, bonus:1200, leave:0},
-    '廖月櫻': {struct:{'底薪':31500,'全勤獎金':500,'主管津貼':6000,'分校人數超額獎金':7500,'美語津貼':12600,'混班/混校津貼':4000,'勞保自付':1349}, bonus:0, leave:594},
-    '鄭錦雪': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':6500,'勞保自付':2620,'退休金提撥':1998}, bonus:1800, leave:0},
-    '翁麗美': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':2000,'混班/混校津貼':5500,'勞保自付':1698}, bonus:1000, leave:0},
-    '郭子綺': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':0,'勞保自付':458}, bonus:0, leave:0},
-    '林錦雲': {struct:{'底薪':29500,'全勤獎金':500,'年資津貼':2000}, bonus:30280, leave:0},
-    '陳渝潔': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':3000,'分校人數超額獎金':1500,'勞保自付':1196}, bonus:1100, leave:0},
-    '吳鈺蘋': {struct:{'底薪':30500,'全勤獎金':0,'年資津貼':2000,'英文輔導津貼':6000,'勞保自付':1196}, bonus:3500, leave:1920},
-    '陳允謙': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':2000,'英文輔導津貼':6000,'勞保自付':1196}, bonus:5200, leave:1920},
-    '陳敬翔': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':2000,'分校人數超額獎金':1500,'混班/混校津貼':500,'勞保自付':1196}, bonus:2300, leave:0},
-    '陳正芬': {struct:{'底薪':31500,'全勤獎金':500,'主管津貼':4000,'分校人數超額獎金':11500,'帶班人數津貼':10500,'混班/混校津貼':500,'數學班津貼':400,'勞保自付':1349,'退休金提撥':1998}, bonus:800, leave:0},
-    '宋家喬': {struct:{'底薪':31500,'全勤獎金':500,'年資津貼':3000,'分校人數超額獎金':2000,'數學班津貼':100,'勞保自付':2384,'退休金提撥':1818}, bonus:1300, leave:1440},
-  };
-  const MIG_ZJ = {
-    '李如蘋': {struct:{'底薪':29500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':1600,'美語津貼':1300,'勞保自付':2620,'退休金提撥':1998}, bonus:1000, leave:0},
-    '蕭羽儂': {struct:{'底薪':31500,'全勤獎金':500,'主管津貼':10000,'分校人數超額獎金':5000,'其他津貼':3000,'勞保自付':2782}, bonus:0, leave:0},
-    '黃玉華': {struct:{'底薪':30500,'全勤獎金':500,'年資津貼':4000,'主管津貼':7000,'分校人數超額獎金':10240,'帶班人數津貼':11500,'混班/混校津貼':500,'其他津貼':3500,'勞保自付':1349}, bonus:600, leave:0},
-    '洪子彤': {struct:{'底薪':30500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':500,'英文輔導津貼':3000,'其他津貼':3000,'勞保自付':1196}, bonus:1000, leave:0},
-    '吳湘晴': {struct:{'底薪':30500,'全勤獎金':500,'年資津貼':4000,'分校人數超額獎金':1500,'勞保自付':1654}, bonus:1200, leave:0},
-    '胡瑄曼': {struct:{'底薪':29500,'全勤獎金':1500,'年資津貼':2000,'分校人數超額獎金':0,'勞保自付':2570}, bonus:0, leave:0},
-    '蕭文華': {struct:{'底薪':29500,'全勤獎金':0,'其他津貼':29140}, bonus:1000, leave:0},
-    '游晏慈': {struct:{'底薪':29500,'全勤獎金':1500,'年資津貼':1000,'分校人數超額獎金':0,'英文輔導津貼':3000,'其他津貼':4000,'勞保自付':1196}, bonus:200, leave:0},
-    '何宥蓉': {struct:{'底薪':29500,'全勤獎金':1500,'年資津貼':1000,'勞保自付':1196}, bonus:0, leave:0},
-    '何革融': {struct:{'底薪':29500,'全勤獎金':1500,'年資津貼':1000,'分校人數超額獎金':0,'勞保自付':1196}, bonus:400, leave:0},
-  };
+  const MIG_TA = {};   // 已清空：格式 '姓名': {struct:{'底薪':31500,...}, bonus:0, leave:0}
+  const MIG_ZJ = {};
   let _migCloudData = null;
 
   function openMigratePwd() {
@@ -4752,7 +4843,7 @@
     const sid = currentUser && currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) { $('migratePwdErrMsg').textContent='本校區無 boss 帳號'; $('migratePwdErr').classList.add('show'); return; }
-    if (pwd !== boss.password) { $('migratePwdErrMsg').textContent='密碼錯誤'; $('migratePwdErr').classList.add('show'); return; }
+    if (!accountPwdOk(sid, 'boss', pwd)) { $('migratePwdErrMsg').textContent='密碼錯誤'; $('migratePwdErr').classList.add('show'); return; }
     closeMigratePwd();
     openMigrate();
   }
@@ -4905,7 +4996,7 @@
     const sid = currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) return err('本校區無 boss 帳號');
-    if (pwd !== boss.password) return err('密碼錯誤');
+    if (!accountPwdOk(sid, 'boss', pwd)) return err('密碼錯誤');
     if (($('wipeAllConfirm').value || '').trim() !== '刪除全部') return err('請輸入「刪除全部」四個字');
     if (!confirm('最後確認：將刪除所有校區的全部員工資料與薪資紀錄，無法復原。\n\n系統會先備份再刪除。確定嗎？')) return;
     closeWipeAll();
@@ -4972,7 +5063,7 @@
     const sid = currentUser && currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) return err('本校區無 boss 帳號');
-    if (pwd !== boss.password) return err('密碼錯誤');
+    if (!accountPwdOk(sid, 'boss', pwd)) return err('密碼錯誤');
     closeDelDataPwd();
     openDelData();
   }
@@ -5159,7 +5250,7 @@
     const sid = currentUser && currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) { $('clearBonusPwdErrMsg').textContent='本校區無 boss 帳號'; $('clearBonusPwdErr').classList.add('show'); return; }
-    if (pwd !== boss.password) { $('clearBonusPwdErrMsg').textContent='密碼錯誤'; $('clearBonusPwdErr').classList.add('show'); return; }
+    if (!accountPwdOk(sid, 'boss', pwd)) { $('clearBonusPwdErrMsg').textContent='密碼錯誤'; $('clearBonusPwdErr').classList.add('show'); return; }
     closeClearBonusPwd();
     openClearBonusScope();
   }
@@ -5233,43 +5324,11 @@
   // ═══════════════════════════════════════════════════════════════
   // 📅 修正到職日 (HireDate Migration) — boss-gated bulk hire-date fix
   // 來源: 健保加保日資料（被保險人 = 保險對象，共 28 筆）
-  // 民國 + 1911 = 西元。OCR 變字（蔡銘孝/蔡明孝、胡暄曼/胡瑄曼）以雲端官方姓名為主
+  // 民國 + 1911 = 西元。OCR 變字以雲端官方姓名為主
   // 比對方式：優先依「身份證字號」匹配（即使姓名 OCR 不同也能對到正確人）
   //          身份證字號為空時再 fallback 依「姓名」匹配
   // ═══════════════════════════════════════════════════════════════
-  const HIRE_DATE_FIXES = [
-    // ── 大立昇美語（林口校 TA）──
-    { name:'謝明學', idNum:'A225593072', date:'2016-07-01', src:'加保日 105/07/01' },
-    { name:'蕭宜帆', idNum:'F125666171', date:'2022-03-01', src:'加保日 111/03/01' },
-    { name:'廖繹雯', idNum:'F228967140', date:'2022-03-14', src:'加保日 111/03/14' },
-    { name:'呂理平', idNum:'H120363239', date:'2011-04-25', src:'加保日 100/04/25（新員工）' },
-    { name:'呂學龍', idNum:'H124644520', date:'2022-02-14', src:'加保日 111/02/14' },
-    { name:'陳允謙', idNum:'H124848206', date:'2024-11-14', src:'加保日 113/11/14' },
-    { name:'蔡明孝', idNum:'H124854151', date:'2023-08-08', src:'加保日 112/08/08（蔡銘孝）' },
-    { name:'吳芳芝', idNum:'H221553293', date:'2016-01-01', src:'加保日 105/01/01' },
-    // ── 林口校分班 ──
-    { name:'陳正芬', idNum:'F220825805', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
-    { name:'張濠祥', idNum:'H124265403', date:'2026-06-17', src:'加保日 115/06/17（新員工）' },
-    { name:'陳敬翔', idNum:'H125559735', date:'2025-08-18', src:'加保日 114/08/18' },
-    { name:'廖月櫻', idNum:'H221377462', date:'2024-10-01', src:'加保日 113/10/01' },
-    { name:'郭子綺', idNum:'H222147208', date:'2024-10-01', src:'加保日 113/10/01' },
-    { name:'周芯薇', idNum:'H224306116', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
-    { name:'陳渝潔', idNum:'H224906894', date:'2024-10-01', src:'加保日 113/10/01' },
-    { name:'林歆怡', idNum:'L225245972', date:'2026-04-22', src:'加保日 115/04/22（新員工）' },
-    { name:'翁麗美', idNum:'T220110864', date:'2024-10-01', src:'加保日 113/10/01' },
-    // ── 莊敬分班（莊敬 ZJ）──
-    { name:'蕭羽儂', idNum:'C221124724', date:'2022-09-12', src:'加保日 111/09/12' },
-    { name:'吳湘晴', idNum:'F223728189', date:'2023-11-01', src:'加保日 112/11/01' },
-    { name:'洪子彤', idNum:'F230309096', date:'2023-10-26', src:'加保日 112/10/26' },
-    { name:'呂學宗', idNum:'H124742281', date:'2022-04-25', src:'加保日 111/04/25（新員工）' },
-    { name:'吳鈺蘋', idNum:'H224433261', date:'2024-12-23', src:'加保日 113/12/23' },
-    { name:'陳宇薇', idNum:'H224519686', date:'2019-07-01', src:'加保日 108/07/01（新員工）' },
-    { name:'陳詩佳', idNum:'H225185451', date:'2026-05-20', src:'加保日 115/05/20（新員工）' },
-    { name:'何宥蓉', idNum:'I200151847', date:'2025-09-12', src:'加保日 114/09/12' },
-    { name:'胡瑄曼', idNum:'L225358189', date:'2025-08-20', src:'加保日 114/08/20（胡暄曼）' },
-    { name:'何革融', idNum:'Q123219770', date:'2025-10-01', src:'加保日 114/10/01' },
-    { name:'游晏慈', idNum:'U221964438', date:'2025-09-11', src:'加保日 114/09/11' }
-  ];
+  const HIRE_DATE_FIXES = [];   // 已清空：格式 { name:'姓名', idNum:'身份證字號', date:'2024-10-01', src:'來源' }
   let _hireDatePlan = [];   // populated by previewHireDate()
 
   function openHireDatePwd() {
@@ -5291,7 +5350,7 @@
     const sid = currentUser && currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) { $('hireDatePwdErrMsg').textContent='本校區無 boss 帳號'; $('hireDatePwdErr').classList.add('show'); return; }
-    if (pwd !== boss.password) { $('hireDatePwdErrMsg').textContent='密碼錯誤'; $('hireDatePwdErr').classList.add('show'); return; }
+    if (!accountPwdOk(sid, 'boss', pwd)) { $('hireDatePwdErrMsg').textContent='密碼錯誤'; $('hireDatePwdErr').classList.add('show'); return; }
     closeHireDatePwd();
     previewHireDate();
   }
@@ -5397,39 +5456,7 @@
   // 🆔 批次匯入身份證字號 — boss-gated bulk ID number import
   // 來源: 健保加保日資料（28 筆，姓名為雲端官方姓名，含 OCR 變字對應）
   // ═══════════════════════════════════════════════════════════════
-  const ID_NUMBER_FIXES = [
-    // ── 大立昇美語（林口校 TA）──
-    { name:'謝明學', id:'A225593072' },
-    { name:'蕭宜帆', id:'F125666171' },
-    { name:'廖繹雯', id:'F228967140' },
-    { name:'呂理平', id:'H120363239' },
-    { name:'呂學龍', id:'H124644520' },
-    { name:'陳允謙', id:'H124848206' },
-    { name:'蔡明孝', id:'H124854151' },   // OCR: 蔡銘孝
-    { name:'吳芳芝', id:'H221553293' },
-    // ── 林口校分班 ──
-    { name:'陳正芬', id:'F220825805' },
-    { name:'張濠祥', id:'H124265403' },
-    { name:'陳敬翔', id:'H125559735' },
-    { name:'廖月櫻', id:'H221377462' },
-    { name:'郭子綺', id:'H222147208' },
-    { name:'周芯薇', id:'H224306116' },
-    { name:'陳渝潔', id:'H224906894' },
-    { name:'林歆怡', id:'L225245972' },
-    { name:'翁麗美', id:'T220110864' },
-    // ── 莊敬分班（莊敬 ZJ）──
-    { name:'蕭羽儂', id:'C221124724' },
-    { name:'吳湘晴', id:'F223728189' },
-    { name:'洪子彤', id:'F230309096' },
-    { name:'呂學宗', id:'H124742281' },
-    { name:'吳鈺蘋', id:'H224433261' },
-    { name:'陳宇薇', id:'H224519686' },
-    { name:'陳詩佳', id:'H225185451' },
-    { name:'何宥蓉', id:'I200151847' },
-    { name:'胡瑄曼', id:'L225358189' },   // OCR: 胡暄曼
-    { name:'何革融', id:'Q123219770' },
-    { name:'游晏慈', id:'U221964438' }
-  ];
+  const ID_NUMBER_FIXES = [];   // 已清空：格式 { name:'姓名', id:'身份證字號' }
   let _idNumPlan = [];
 
   function openIdNumPwd() {
@@ -5451,7 +5478,7 @@
     const sid = currentUser && currentUser.schoolId;
     const boss = sid && CREDENTIALS[sid] && CREDENTIALS[sid].users.find(u => u.username === 'boss');
     if (!boss) { $('idNumPwdErrMsg').textContent='本校區無 boss 帳號'; $('idNumPwdErr').classList.add('show'); return; }
-    if (pwd !== boss.password) { $('idNumPwdErrMsg').textContent='密碼錯誤'; $('idNumPwdErr').classList.add('show'); return; }
+    if (!accountPwdOk(sid, 'boss', pwd)) { $('idNumPwdErrMsg').textContent='密碼錯誤'; $('idNumPwdErr').classList.add('show'); return; }
     closeIdNumPwd();
     previewIdNum();
   }
@@ -6749,7 +6776,7 @@
 
   // ==========================================================================
   // 📧 批次匯入 Email（V20261018V1945）— 從 Excel / CSV / 貼上文字 填入員工 Email
-  //   比對順序：員工編號 → 中文姓名（可包含，例如「Summer游晏慈」→「游晏慈」）→ 英文姓名
+  //   比對順序：員工編號 → 中文姓名（可包含，例如「Summer王小明」→「王小明」）→ 英文姓名
   //   同名時用校區區分；同一員工出現多次以最後一筆為準
   // ==========================================================================
   let _bulkMailPlan = [];
@@ -8159,7 +8186,9 @@
       const isSelf = currentUser &&
         String(currentUser.schoolId) === String(schoolId) &&
         currentUser.username === u.username;
-      const pwdMasked = '•'.repeat(Math.min(u.password.length, 12));
+      const mg = isManagedAccount(schoolId, u.username);
+      const mgText = mg ? managedStatusText(schoolId, u.username) : '';
+      const pwdMasked = mg ? mgText : '•'.repeat(Math.min(String(u.password || '').length, 12));
       const roleCls = u.role === 'owner' ? 'owner' : 'manager';
       const roleLabel = u.role === 'owner' ? '老闆 Owner' : '主管 Manager';
 
@@ -8168,8 +8197,8 @@
           <b>${u.username}</b>
         </td>
         <td class="pwd-cell">
-          <span data-real="${u.password.replace(/"/g,'&quot;')}" data-masked="${pwdMasked}" id="pwd-${schoolId}-${realIdx}">${pwdMasked}</span>
-          <span class="reveal" onclick="togglePwd('${schoolId}',${realIdx})" title="顯示/隱藏密碼">👁</span>
+          <span data-real="${(mg ? mgText : String(u.password || '')).replace(/"/g,'&quot;')}" data-masked="${pwdMasked}" id="pwd-${schoolId}-${realIdx}">${pwdMasked}</span>
+          ${mg ? '' : `<span class="reveal" onclick="togglePwd('${schoolId}',${realIdx})" title="顯示/隱藏密碼">👁</span>`}
         </td>
         <td><span class="role-chip ${roleCls}">${roleLabel}</span></td>
         <td>${u.fullName || '—'}</td>
@@ -8199,7 +8228,10 @@
     _editingAcctIdx = idx;
     $('acctModalTitle').textContent = `編輯帳號 — ${CREDENTIALS[schoolId].name}`;
     $('acctUsername').value = u.username;
-    $('acctPassword').value = u.password;
+    const _mgE = isManagedAccount(schoolId, u.username);
+    $('acctPassword').value = _mgE ? '' : u.password;
+    $('acctPassword').placeholder = _mgE ? '留空＝不變更；輸入新密碼＝重設（對方下次登入需再改）' : '';
+    $('acctUsername').readOnly = _mgE;
     $('acctRole').value     = u.role || 'manager';
     $('acctFullName').value = u.fullName || '';
     $('acctEmail').value    = u.email || '';
@@ -8216,6 +8248,8 @@
     $('acctModalTitle').textContent = `新增帳號 — ${CREDENTIALS[schoolId].name}`;
     $('acctUsername').value = '';
     $('acctPassword').value = '';
+    $('acctPassword').placeholder = '';
+    $('acctUsername').readOnly = false;
     $('acctRole').value     = 'manager';
     $('acctFullName').value = '';
     $('acctEmail').value    = '';
@@ -8236,7 +8270,7 @@
     $('acctErr').classList.add('show');
   }
 
-  function saveAccount() {
+  async function saveAccount() {
     const u = ($('acctUsername').value || '').trim();
     const p = ($('acctPassword').value || '').trim();
     const r = $('acctRole').value;
@@ -8246,8 +8280,11 @@
 
     if (!u) { showAcctErr('帳號為必填'); return; }
     if (!/^[a-zA-Z0-9_]+$/.test(u)) { showAcctErr('帳號只能用英數字與底線'); return; }
-    if (!p) { showAcctErr('密碼為必填'); return; }
-    if (p.length < 4) { showAcctErr('密碼至少 4 碼'); return; }
+    const mgS = isManagedAccount(schoolId, u);
+    const editingMg = mgS && _editingAcctIdx !== -1;
+    if (!p && !editingMg) { showAcctErr('密碼為必填'); return; }
+    if (p && p.length < 4) { showAcctErr('密碼至少 4 碼'); return; }
+    if (mgS && p) { const pe = strongPwdError(p, u); if (pe) { showAcctErr(pe); return; } }
     if (!n) { showAcctErr('姓名為必填'); return; }
     if (!['manager', 'owner'].includes(r)) { showAcctErr('角色無效'); return; }
 
@@ -8258,10 +8295,32 @@
       i !== _editingAcctIdx && x.username.toLowerCase() === u.toLowerCase()
     );
     if (dupIdx >= 0) { showAcctErr(`帳號 "${u}" 已存在`); return; }
+    if (editingMg) {
+      const oldU = users[_editingAcctIdx];
+      if (String(oldU.username).toLowerCase() !== u.toLowerCase()) { showAcctErr('預設帳號不可更名'); return; }
+      if (String(oldU.username).toLowerCase() === 'boss' && (!currentUser || String(currentUser.username).toLowerCase() !== 'boss')) {
+        showAcctErr('只有 boss 帳號本人可以修改 boss'); return;
+      }
+    }
+    if (mgS && p) {
+      // 預設帳號的密碼：寫入雲端雜湊。老闆替別人重設 → 對方下次登入必須再自行改密碼
+      const selfEdit = !!(currentUser && editingMg && String(currentUser.schoolId) === String(schoolId) &&
+                          String(currentUser.username).toLowerCase() === u.toLowerCase());
+      const prevAuth = DATA.accountAuth ? JSON.parse(JSON.stringify(DATA.accountAuth)) : null;
+      setManagedPasswordLocal(schoolId, u, p, !selfEdit);
+      try {
+        const j = await cloudPost('write', { data: DATA });
+        _lastCloudTs = j.ts || _lastCloudTs;
+      } catch (e) {
+        if (prevAuth) DATA.accountAuth = prevAuth; else delete DATA.accountAuth;
+        showAcctErr('無法寫入雲端，密碼尚未變更：' + e.message);
+        return;
+      }
+    }
 
     if (_editingAcctIdx === -1) {
       // Add
-      users.push({ username: u, password: p, role: r, fullName: n, email: m });
+      users.push({ username: u, password: mgS ? '' : p, role: r, fullName: n, email: m });
       appendLog({
         time: nowTimestamp(),
         user: currentUser.fullName,
@@ -8273,14 +8332,14 @@
       const old = users[_editingAcctIdx];
       const changes = [];
       if (old.username !== u) changes.push(`帳號 ${old.username}→${u}`);
-      if (old.password !== p) changes.push('密碼已更新');
+      if (mgS ? !!p : old.password !== p) changes.push('密碼已更新');
       if (old.role !== r) changes.push(`角色 ${old.role}→${r}`);
       if (old.fullName !== n) changes.push(`姓名 ${old.fullName}→${n}`);
       // If editing current logged-in user, update currentUser too
       if (currentUser && String(currentUser.schoolId) === String(schoolId) &&
           currentUser.username === old.username) {
         currentUser.username = u;
-        currentUser.password = p;
+        if (p) currentUser.password = p;
         currentUser.role = r;
         currentUser.fullName = n;
         // Refresh topbar
@@ -8288,7 +8347,7 @@
         $('dbRole').textContent = r === 'owner' ? '老闆 Owner' : '主管 Manager';
         $('dbRole').className = 'u-role ' + r;
       }
-      users[_editingAcctIdx] = { username: u, password: p, role: r, fullName: n, email: m };
+      users[_editingAcctIdx] = { username: u, password: mgS ? '' : p, role: r, fullName: n, email: m };
       appendLog({
         time: nowTimestamp(),
         user: currentUser.fullName,
@@ -8344,7 +8403,7 @@
       headers
     ];
     school.users.forEach(u => {
-      rows.push([u.username, u.password, u.role, u.fullName || '', u.email || '', '']);
+      rows.push([u.username, exportPwdText(schoolId, u), u.role, u.fullName || '', u.email || '', '']);
     });
     const ws = XLSX.utils.aoa_to_sheet(rows);
     // Merge title across columns
@@ -8425,6 +8484,11 @@
     _pwdForced = !!force;
     $('myPwdTitle').textContent = _pwdForced ? '首次登入：請設定新密碼 Set New Password' : '修改我的密碼 Change Password';
     $('myPwdForceNote').classList.toggle('show', _pwdForced);
+    { const note = $('myPwdForceNote');
+      if (!note.dataset.orig) note.dataset.orig = note.textContent;
+      note.textContent = (currentUser.role !== 'employee' && currentUser.managed)
+        ? '🔐 這是此帳號第一次登入（或密碼剛被重設）。為了系統安全，請先設定一組新密碼（至少 8 碼，需同時包含英文字母與數字），之後請使用新密碼登入。'
+        : note.dataset.orig; }
     $('myPwdCurrentField').style.display = _pwdForced ? 'none' : '';
     $('myPwdCloseX').style.display = _pwdForced ? 'none' : '';
     $('myPwdCancel').style.display = _pwdForced ? 'none' : '';
@@ -8448,15 +8512,17 @@
     $('myPwdErr').classList.add('show');
     $('myPwdOk').classList.remove('show');
   }
-  function saveMyPassword() {
+  async function saveMyPassword() {
     const cur = $('myPwdCurrent').value;
     const nw  = $('myPwdNew').value;
     const cf  = $('myPwdConfirm').value;
     if (!cur || !nw || !cf) { showMyPwdErr('請填寫所有欄位'); return; }
-    if (cur !== currentUser.password) { showMyPwdErr('目前密碼錯誤'); return; }
+    const _mg = currentUser.role !== 'employee' && currentUser.managed;
+    if (_mg ? !managedPwdOk(currentUser.schoolId, currentUser.username, cur) : (cur !== currentUser.password)) { showMyPwdErr('目前密碼錯誤'); return; }
     if (nw.length < 6) { showMyPwdErr('新密碼至少 6 碼'); return; }
     if (nw === cur) { showMyPwdErr('新密碼不能與目前密碼相同'); return; }
     if (nw !== cf) { showMyPwdErr('新密碼兩次輸入不一致'); return; }
+    if (_mg) { const pe = strongPwdError(nw, currentUser.username); if (pe) { showMyPwdErr(pe); return; } }
 
     if (currentUser.role === 'employee') {
       // Employee: update their 登入密碼 in DATA.employees
@@ -8467,6 +8533,20 @@
       currentUser.password = nw;
       persistData();
       try { flushPersist(); } catch (_) {}
+    } else if (_mg) {
+      // 預設管理帳號：新密碼以加鹽雜湊寫入雲端（寫入失敗就不變更）
+      const prevAuth = DATA.accountAuth ? JSON.parse(JSON.stringify(DATA.accountAuth)) : null;
+      setManagedPasswordLocal(currentUser.schoolId, currentUser.username, nw, false);
+      try {
+        const j = await cloudPost('write', { data: DATA });
+        _lastCloudTs = j.ts || _lastCloudTs;
+      } catch (e) {
+        if (prevAuth) DATA.accountAuth = prevAuth; else delete DATA.accountAuth;
+        showMyPwdErr('無法寫入雲端，密碼尚未變更：' + e.message);
+        return;
+      }
+      currentUser.password = nw;
+      currentUser.needsSetup = false;
     } else {
       // Owner/Manager: update CREDENTIALS
       const list = CREDENTIALS[currentUser.schoolId].users;
@@ -9191,7 +9271,7 @@
         const sch = CREDENTIALS[sid];
         if (!sch) return;
         sch.users.forEach(u => {
-          acctRows.push([sch.name, u.username, u.password, u.role, u.fullName || '', u.email || '']);
+          acctRows.push([sch.name, u.username, exportPwdText(sid, u), u.role, u.fullName || '', u.email || '']);
         });
       });
       const wsAcct = XLSX.utils.aoa_to_sheet(acctRows);
@@ -11466,6 +11546,21 @@
   // 每次修改系統：在陣列「最上面」新增一筆。版本格式 VyyyymmddVhhmm（例：V20261009V2100 = 2026/10/09 21:00）
   const APP_CHANGELOG = [
     {
+      version: 'V20261024V1330', date: '2026-10-24 13:30',
+      changes: [
+        '清除檔案內建的員工與薪資範例資料（DEFAULT_DATA 改為空）。雲端沒有資料時，系統從空白開始；已有雲端資料的不受影響'
+      ]
+    },
+    {
+      version: 'V20261024V1300', date: '2026-10-24 13:00',
+      changes: [
+        '安全性：程式碼不再內建 boss 等預設帳號的明碼密碼。boss 首次登入必須使用一次性初始密碼，登入後強制先設定新密碼（至少 8 碼、含英文字母與數字）',
+        '新密碼以加鹽 SHA-256 存在雲端資料 accountAuth（各電腦共用，不存明碼）；帳號管理對預設帳號不顯示、不匯出密碼，老闆可替主管重設（對方下次登入需再改）',
+        '其他預設帳號（admin1、manager1、manager2、teacher1…）預設未啟用，需由 boss 在「帳號管理」→ 編輯 設定密碼後才能登入；老闆自行新增的帳號維持原做法',
+        '公式設定頁的 Boss 解鎖改為驗證雲端雜湊'
+      ]
+    },
+    {
       version: 'V20261024V1230', date: '2026-10-24 12:30',
       changes: [
         '所有頁面（含薪資條列印）加上浮水印「BigGoalAidan Salary System」：斜向重複、淡灰色，不影響點選與操作'
@@ -11583,7 +11678,7 @@
       version: 'V20261018V1945', date: '2026-10-18 19:45',
       changes: [
         '員工資料頁新增「📧 批次匯入 Email」（「📥 批次新增員工」旁）：上傳 Excel（.xlsx/.xls）、CSV，或從 Excel 複製貼上，一次填入多位員工的 Email；Google 表單回覆下載的檔案也能直接用',
-        '依員工編號、中文姓名（可中英混寫，例如「Summer游晏慈」→ 游晏慈）或英文姓名自動比對，同名時用校區區分；匯入前先預覽新增／更新／找不到，可逐筆勾選',
+        '依員工編號、中文姓名（可中英混寫，例如「Summer王小明」→ 王小明）或英文姓名自動比對，同名時用校區區分；匯入前先預覽新增／更新／找不到，可逐筆勾選',
         '可下載「員工Email範本.xlsx」（含目前所有員工名單與現有 Email），填好直接上傳'
       ]
     },
