@@ -153,6 +153,11 @@ footer.note2 { text-align:center; color:rgba(255,255,255,.85); font-size:12px; m
       <div class="f"><label>代表色</label><input type="color" id="coColor" value="#667eea"></div>
     </div>
 
+    <div class="f" id="copyWrap">
+      <label>建立方式</label>
+      <select id="coCopy" style="width:100%;padding:10px;border:1.5px solid #cbd5e1;border-radius:9px;font-size:14px"></select>
+      <div class="hint">選「複製」會在雲端硬碟建立這家公司自己的新資料檔（不會共用原公司的檔案）。帳號密碼不會被複製，新公司 boss 用下方的初始密碼登入。</div>
+    </div>
     <div class="f" id="bossWrap">
       <label id="bossLabel">Boss 初始密碼 *</label>
       <div class="pwrow"><input type="password" id="coBoss" autocomplete="new-password"><span class="eye" onclick="eye('coBoss',this)">👁</span></div>
@@ -358,6 +363,16 @@ function openCo(id) {
   $('bossLabel').textContent = c ? 'Boss 初始密碼（選填：要重設時才填）' : 'Boss 初始密碼 *';
   $('resetWrap').style.display = c ? '' : 'none'; $('coReset').checked = false;
   $('archWrap').style.display = (c && c.id !== 'default') ? '' : 'none'; $('coArch').checked = !!(c && c.archived);
+  $('copyWrap').style.display = c ? 'none' : '';
+  if (!c) {
+    let h = '<option value="">空白新公司（不複製）</option>';
+    ADMIN_LIST.forEach(x => {
+      const nm = String(x.name).replace(/[<>&"]/g, '');
+      h += '<option value="settings:' + x.id + '">複製設定（公式／權限，不含員工與薪資）— ' + nm + '</option>';
+      h += '<option value="full:' + x.id + '">完整複製（含員工與薪資）— ' + nm + '</option>';
+    });
+    $('coCopy').innerHTML = h;
+  }
   buildPerm(c ? c.permissions : DEF_PERMS);
   setMsg('coMsg', '', '');
   $('mCo').classList.add('show');
@@ -379,7 +394,11 @@ async function saveCo() {
     permissions: collectPerms()
   };
   if (boss) payload.bossInitHash = pwHash(INIT_PWD_SALT, boss);
-  if (isNew) { if (id) payload.id = id; }
+  if (isNew) {
+    if (id) payload.id = id;
+    const cp = $('coCopy').value;
+    if (cp) { const k = cp.indexOf(':'); payload.copyMode = cp.slice(0, k); payload.copyFrom = cp.slice(k + 1); }
+  }
   else {
     payload.id = editingId;
     if (editingId !== 'default') payload.archived = $('coArch').checked;
