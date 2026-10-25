@@ -58,6 +58,7 @@ const TA = {
 const ZJ = {
 };
 
+const COMPANY = (function () { let id = ''; try { id = new URLSearchParams(location.search).get('company') || ''; } catch (e) {} id = String(id).toLowerCase(); try { if (/^[a-z0-9_-]{1,30}$/.test(id)) localStorage.setItem('kc_company_v1', id); else id = localStorage.getItem('kc_company_v1') || ''; } catch (e) {} return /^[a-z0-9_-]{1,30}$/.test(id) ? id : 'default'; })();
 let cloudData = null;
 
 function setStatus(msg, cls) {
@@ -70,7 +71,7 @@ function setMsg(html) {
 async function loadCloud() {
   setStatus('讀取中...');
   try {
-    const r = await fetch(URL + '?action=read&_=' + Date.now(), {cache:'no-store'});
+    const r = await fetch(URL + '?action=read&company=' + encodeURIComponent(COMPANY) + '&_=' + Date.now(), {cache:'no-store'});
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || '雲端錯誤');
     cloudData = j.data;
@@ -180,19 +181,19 @@ async function apply() {
   try {
     const r = await fetch(URL, {
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'write', data: cloudData})
+      body: JSON.stringify({action:'write', company: COMPANY, data: cloudData})
     });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error);
     setStatus('✓ 寫入完成 ('+j.ts+')', 'ok');
-    setMsg('<p class="ok">✅ 完成！請打開 homepage.html 確認薪資已更新。</p>');
+    setMsg('<p class="ok">✅ 完成！請打開 index.html 選擇公司，進入薪資系統 確認薪資已更新。</p>');
     document.getElementById('bApply').disabled = true;
   } catch (e) {
     setStatus('✗ '+e.message, 'err');
   }
 }
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1330</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1530</div>
 
 <!-- WATERMARK:BigGoalAidan -->
 <style id="wmStyle">

@@ -156,7 +156,7 @@ table.mini td:first-child, table.mini th:first-child { text-align:left; }
 <body>
 <div class="wrap">
   <header>
-    <a href="index.html" class="back">← 返回薪資系統</a>
+    <a href="Salary_System.html" class="back">← 返回薪資系統</a>
     <h1>📐 薪資公式設定</h1>
     <div class="sub">Formula Settings · 所有薪資計算公式與參數，修改後同步到雲端，兩校立即套用</div>
   </header>
@@ -191,9 +191,10 @@ table.mini td:first-child, table.mini th:first-child { text-align:left; }
 
 <script>
 const CLOUD_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbyMwyCq4w-tFWK3DHirPBbzga8dOdbzMAYXAcyCLEIoeTKujuAjt-ZByfWQjSm20zqY/exec';
+const COMPANY = (function () { let id = ''; try { id = new URLSearchParams(location.search).get('company') || ''; } catch (e) {} id = String(id).toLowerCase(); try { if (/^[a-z0-9_-]{1,30}$/.test(id)) localStorage.setItem('kc_company_v1', id); else id = localStorage.getItem('kc_company_v1') || ''; } catch (e) {} return /^[a-z0-9_-]{1,30}$/.test(id) ? id : 'default'; })();
 function cloudUrl() { try { return localStorage.getItem('kc_cloud_url_v1') || CLOUD_URL_DEFAULT; } catch(_) { return CLOUD_URL_DEFAULT; } }
 
-// 預設值必須與 index.html 的 FORMULA_DEFAULTS 一致
+// 預設值必須與 Salary_System.html 的 FORMULA_DEFAULTS 一致
 const DEFAULTS = {
   OT_RATE: 180, PAY_RATE: 180, LEAVE_RATE: 133, LATE_FEE: 100,
   KC_HEAD_RATE: 80, KC_WRITING_RATE: 40,
@@ -233,7 +234,7 @@ function fmt(n) { return (Number(n) || 0).toLocaleString('en-US'); }
 function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
-// ---------- formula engines (mirror index.html) ----------
+// ---------- formula engines (mirror Salary_System.html) ----------
 function isSummer(m) { return String(cfg.CS_SUMMER).split(/[,，\s]+/).map(Number).includes(Number(m)); }
 function classSize(hc, month) {
   const s = isSummer(month), b = +cfg.CS_BASE, t = +cfg.CS_TIER;
@@ -556,7 +557,7 @@ function validate() {
 // ---------- cloud ----------
 async function cloudGet() {
   const u = cloudUrl();
-  const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'action=read&_=' + Date.now(), { cache:'no-store' });
+  const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'action=read&company=' + encodeURIComponent(COMPANY) + '&_=' + Date.now(), { cache:'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || '雲端錯誤');
@@ -565,7 +566,7 @@ async function cloudGet() {
 async function cloudPost(action, payload) {
   const r = await fetch(cloudUrl(), {
     method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ action }, payload))
+    body: JSON.stringify(Object.assign({ action, company: COMPANY }, payload))
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const j = await r.json();
@@ -628,7 +629,7 @@ function resetDefaults() {
   cfg = clone(DEFAULTS); render();
 }
 
-// ---------- boss unlock（驗證雲端的加鹽雜湊，規則同 index.html）----------
+// ---------- boss unlock（驗證雲端的加鹽雜湊，規則同 Salary_System.html）----------
 const INIT_PWD_SALT = 'kc-init-v1';
 const BOSS_INIT_HASH = '654cbfc79bb28cb86930ed6434d96d1eac10105dfd7cd573ee58fc672a55707e';
 function sha256hex(ascii){
@@ -657,15 +658,23 @@ function sha256hex(ascii){
   return result;
 }
 function pwHash(salt, pwd){ return sha256hex(unescape(encodeURIComponent(String(salt) + ':' + String(pwd)))); }
+async function companyInitHash() {
+  try {
+    const u = cloudUrl();
+    const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'action=get_company&company=' + encodeURIComponent(COMPANY) + '&_=' + Date.now(), { cache:'no-store' });
+    const j = await r.json();
+    if (j.ok && j.company && j.company.bossInitHash) return j.company.bossInitHash;
+  } catch (e) {}
+  return COMPANY === 'default' ? BOSS_INIT_HASH : '';
+}
 async function verifyBoss(p) {
   const d = await cloudGet();
   const auth = d.accountAuth || {};
   const recs = ['1', '2', '3'].map(s => auth[s + ':boss']).filter(Boolean);
   if (recs.length) return recs.some(r => pwHash(r.s, p) === r.h);
-  return pwHash(INIT_PWD_SALT, p) === BOSS_INIT_HASH;   // 尚未有人設定過新密碼
+  const h = await companyInitHash();            // 尚未有人設定過新密碼：用公司的初始密碼
+  return !!h && pwHash(INIT_PWD_SALT, p) === h;
 }
-function openUnlock() { $('pwd').value = ''; $('pwdErr').textContent = ''; $('unlockOv').classList.add('show'); setTimeout(() => $('pwd').focus(), 60); }
-function closeUnlock() { $('unlockOv').classList.remove('show'); }
 async function doUnlock() {
   const p = ($('pwd').value || '').trim();
   if (!p) { $('pwdErr').textContent = '請輸入密碼'; return; }
@@ -688,7 +697,7 @@ function toast(msg, type) {
 
 load();
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1430</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1530</div>
 <!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
 <style>
   .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }

@@ -115,7 +115,7 @@ footer.note {
 <body>
 <div class="wrap">
   <header>
-    <a href="homepage.html" class="back">← 返回首頁</a>
+    <a href="index.html" class="back">← 返回首頁</a>
     <h1>🔍 員工編號對照表</h1>
     <div class="sub">Employee ID Reference · Kidcastle 林口校・國中部</div>
   </header>
@@ -158,11 +158,12 @@ footer.note {
 <script>
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyMwyCq4w-tFWK3DHirPBbzga8dOdbzMAYXAcyCLEIoeTKujuAjt-ZByfWQjSm20zqY/exec';
 let EMPLOYEES = [];
+const COMPANY = (function () { let id = ''; try { id = new URLSearchParams(location.search).get('company') || ''; } catch (e) {} id = String(id).toLowerCase(); try { if (/^[a-z0-9_-]{1,30}$/.test(id)) localStorage.setItem('kc_company_v1', id); else id = localStorage.getItem('kc_company_v1') || ''; } catch (e) {} return /^[a-z0-9_-]{1,30}$/.test(id) ? id : 'default'; })();
 const $ = id => document.getElementById(id);
 
 async function loadData() {
   try {
-    const r = await fetch(CLOUD_URL + '?action=read&_=' + Date.now(), {cache:'no-store'});
+    const r = await fetch(CLOUD_URL + '?action=read&company=' + encodeURIComponent(COMPANY) + '&_=' + Date.now(), {cache:'no-store'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || '雲端錯誤');
@@ -220,7 +221,7 @@ $('status').addEventListener('change', render);
 
 loadData();
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1230</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1530</div>
 
 <!-- WATERMARK:BigGoalAidan -->
 <style id="wmStyle">

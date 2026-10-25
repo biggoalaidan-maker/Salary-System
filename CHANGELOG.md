@@ -1,7 +1,21 @@
 # Kidcastle 薪資系統 — 修改記錄
 
 版本格式：`VyyyymmddVhhmm`（例：V20261009V2100 = 2026/10/09 21:00）
-每次修改：在最上面新增一筆，並同步更新 index.html 的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
+每次修改：在最上面新增一筆，並同步更新 Salary_System.html（原 index.html）的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
+
+## V20261024V1530（2026-10-24 15:30）
+- 網站入口改為 index.html（公司選擇首頁，原 homepage.html）；薪資系統主程式改名為 Salary_System.html（原 index.html），網址為 Salary_System.html?company=代號
+- 各頁面「返回首頁」連結改指向 index.html；Variable_Map 的「前往」改開 Salary_System.html；公式設定頁的「返回薪資系統」改指向 Salary_System.html
+- 注意：以前收藏的 index.html 書籤現在會進到公司選擇首頁；舊版歷史記錄裡寫的 index.html 指的是現在的 Salary_System.html
+
+## V20261024V1500（2026-10-24 15:00）
+- 新增公司選擇首頁（原 homepage.html，現為 index.html）：列出公司卡片，點選進入系統／員工薪資查詢；「管理者模式」（後端 ADMIN_KEY）可新增公司、修改名稱／圖示／代表色、停用公司、設定角色權限、重設 boss 密碼
+- 多公司：每家公司的員工、薪資、帳號密碼雜湊、操作記錄、備份、回條各自獨立（網址 Salary_System.html?company=代號；預設公司代號 default，沿用原本的資料檔）
+- 角色分頁權限：每家公司可設定老闆／主管能看到的分頁（總覽、主管輸入、老闆輸入、薪水條、帳號管理）；老闆固定保有「老闆輸入」「帳號管理」，員工固定只看薪水條；主管預設不可看薪水條（改由權限設定控制）
+- 新公司的 boss 以管理者設定的初始密碼登入，首次登入強制改密碼；公司尚未設定初始密碼時 boss 無法登入
+- Salary_System.html 左下角顯示目前公司，點擊回首頁；Employee_Number、Employee_Salary_View、Formula_Settings、兩個遷移工具都會帶公司代號
+- 後端 Code.gs、Receipt.gs 同步改為多公司版（需重新貼上並部署新版本；新增設定 ADMIN_KEY）
+- 權限只在畫面層級生效（隱藏分頁與內容），不是資料庫層級的保護
 
 ## V20261024V1430（2026-10-24 14:30）
 - 管理者帳號 boss 的密碼設為 kidcastle2026：程式碼只存雜湊，首次登入不強制改密碼（initNoForce）；boss 之後在「修改密碼」換成新密碼，雲端 accountAuth 就會取代這組預設值

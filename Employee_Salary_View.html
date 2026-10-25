@@ -52,7 +52,7 @@ header .sub { font-size:14px; opacity:.9; margin-top:4px; }
 .alert.success { background:#F0FDF4; color:#065F46; border-left:3px solid #10B981; }
 .back { display:inline-block; margin-bottom:8px; color:#fff; text-decoration:none; font-size:14px; }
 .back:hover { text-decoration:underline; }
-/* Payslip styling — mirrors homepage.html */
+/* Payslip styling — mirrors Salary_System.html */
 .payslip { background:#fff; border-radius:14px; padding:24px 30px; box-shadow:0 8px 24px rgba(0,0,0,.12); }
 .ps-header { text-align:center; border-bottom:3px solid #047857; padding-bottom:10px; margin-bottom:14px; }
 .ps-header h2 { font-size:22px; color:#047857; }
@@ -114,7 +114,7 @@ header .sub { font-size:14px; opacity:.9; margin-top:4px; }
 <body class="role-employee">
 <div class="wrap">
   <header>
-    <a href="homepage.html" class="back no-print">← 返回首頁</a>
+    <a href="index.html" class="back no-print">← 返回首頁</a>
     <h1>🏰 Kidcastle 員工薪資查詢</h1>
     <div class="sub">Employee Self-Service · Payslip Lookup</div>
   </header>
@@ -179,7 +179,7 @@ header .sub { font-size:14px; opacity:.9; margin-top:4px; }
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyMwyCq4w-tFWK3DHirPBbzga8dOdbzMAYXAcyCLEIoeTKujuAjt-ZByfWQjSm20zqY/exec';
 let DATA = null;
 let currentEmp = null;
-// 公式參數：與 index.html／Formula_Settings.html 相同，雲端 DATA.formulaConfig 有設定時以雲端為準
+// 公式參數：與 Salary_System.html／Formula_Settings.html 相同，雲端 DATA.formulaConfig 有設定時以雲端為準
 const FORMULA_DEFAULTS = { OT_RATE: 180, PAY_RATE: 180, LEAVE_RATE: 133, LATE_FEE: 100,
   ATT_REQUIRE_NO_LEAVE: true, ATT_REQUIRE_NO_LATE: true, UNLOCK_DAY: 17,
   KC_WRITING_RATE: 40, PT_TEACH_RATE: 550, PT_ASSIST_RATE: 400,
@@ -197,8 +197,9 @@ function showErr(msg) {
 }
 function hideErr() { $('errMsg').classList.remove('show'); }
 
+const COMPANY = (function () { let id = ''; try { id = new URLSearchParams(location.search).get('company') || ''; } catch (e) {} id = String(id).toLowerCase(); try { if (/^[a-z0-9_-]{1,30}$/.test(id)) localStorage.setItem('kc_company_v1', id); else id = localStorage.getItem('kc_company_v1') || ''; } catch (e) {} return /^[a-z0-9_-]{1,30}$/.test(id) ? id : 'default'; })();
 async function cloudGet(action) {
-  const url = CLOUD_URL + '?action=' + encodeURIComponent(action) + '&_=' + Date.now();
+  const url = CLOUD_URL + '?action=' + encodeURIComponent(action) + '&company=' + encodeURIComponent(COMPANY) + '&_=' + Date.now();
   const r = await fetch(url, { method:'GET', cache:'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const j = await r.json();
@@ -210,7 +211,7 @@ async function cloudPost(action, payload) {
   const r = await fetch(CLOUD_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // 避免 CORS 預檢
-    body: JSON.stringify(Object.assign({ action }, payload || {})),
+    body: JSON.stringify(Object.assign({ action, company: COMPANY }, payload || {})),
     redirect: 'follow'
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -539,7 +540,7 @@ document.addEventListener('keydown', e => {
   }
 });
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261022V2010</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1530</div>
 <!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
 <style>
   .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }
