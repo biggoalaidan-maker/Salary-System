@@ -630,7 +630,7 @@ function resetDefaults() {
 
 // ---------- boss unlock（驗證雲端的加鹽雜湊，規則同 index.html）----------
 const INIT_PWD_SALT = 'kc-init-v1';
-const BOSS_INIT_HASH = 'f491bccb427df7e38e2ecc9b83f25b00bd45aa1ad2b9892240031a799031413c';
+const BOSS_INIT_HASH = '654cbfc79bb28cb86930ed6434d96d1eac10105dfd7cd573ee58fc672a55707e';
 function sha256hex(ascii){
   function rr(v,a){return (v>>>a)|(v<<(32-a));}
   var mp=Math.pow,mw=mp(2,32),i,j,result='',words=[],bl=ascii.length*8;
@@ -688,7 +688,7 @@ function toast(msg, type) {
 
 load();
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1300</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1430</div>
 <!-- 👁 密碼顯示／隱藏按鈕：自動加到每一個密碼欄位（含之後才產生的欄位） -->
 <style>
   .pwd-eye-wrap { position: relative; vertical-align: middle; max-width: 100%; }

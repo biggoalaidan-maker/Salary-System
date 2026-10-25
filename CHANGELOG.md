@@ -3,6 +3,11 @@
 版本格式：`VyyyymmddVhhmm`（例：V20261009V2100 = 2026/10/09 21:00）
 每次修改：在最上面新增一筆，並同步更新 index.html 的 `APP_CHANGELOG` 與 Code.gs 的 `BACKEND_CHANGELOG`。
 
+## V20261024V1430（2026-10-24 14:30）
+- 管理者帳號 boss 的密碼設為 kidcastle2026：程式碼只存雜湊，首次登入不強制改密碼（initNoForce）；boss 之後在「修改密碼」換成新密碼，雲端 accountAuth 就會取代這組預設值
+- 其他預設帳號（admin1、manager1…）維持未啟用
+- 僅前端（index.html、Formula_Settings.html）
+
 ## V20261024V1330（2026-10-24 13:30）
 - 清除檔案內建的員工個資：index.html 的 DEFAULT_DATA（27 位員工與薪資）、薪資遷移表（MIG_TA／MIG_ZJ）、到職日修正表（HIRE_DATE_FIXES）、身份證字號匯入表（ID_NUMBER_FIXES）全部清空，改為空白範本格式；HireDate_Migrate.html、Salary_Migrate.html 內的姓名與薪資表一併清空
 - 畫面上的範例姓名改為「王小明」

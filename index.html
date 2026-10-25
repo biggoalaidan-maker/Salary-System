@@ -3706,7 +3706,7 @@
   //  - 老闆自行新增的帳號維持原本做法（存在該瀏覽器 localStorage）
   // ==========================================================================
   const INIT_PWD_SALT = 'kc-init-v1';
-  const BOSS_INIT_HASH = 'f491bccb427df7e38e2ecc9b83f25b00bd45aa1ad2b9892240031a799031413c';
+  const BOSS_INIT_HASH = '654cbfc79bb28cb86930ed6434d96d1eac10105dfd7cd573ee58fc672a55707e';
   function sha256hex(ascii){
     function rr(v,a){return (v>>>a)|(v<<(32-a));}
     var mp=Math.pow,mw=mp(2,32),i,j,result='',words=[],bl=ascii.length*8;
@@ -3761,7 +3761,11 @@
     const u = list.find(x => String(x.username).toLowerCase() === String(username).toLowerCase());
     return !!(u && String(u.password) === String(pwd));
   }
-  function managedNeedsSetup(sid, username) { const r = authRecord(sid, username); return !r || !!r.must; }
+  function managedNeedsSetup(sid, username) {
+    const r = authRecord(sid, username);
+    if (!r) { const du = _defUser(sid, username); return !(du && du.initNoForce); }   // boss 預設密碼：不強制首次改密碼
+    return !!r.must;
+  }
   function setManagedPasswordLocal(sid, username, pwd, must) {
     if (!DATA.accountAuth || typeof DATA.accountAuth !== 'object') DATA.accountAuth = {};
     const s = newSalt();
@@ -3788,7 +3792,7 @@
     "1": { // 林口校
       name: "林口校", code: "School 1", icon: "🏫", cls: "school1",
       users: [
-        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, initNoForce: true, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
         { username: "admin1",   password: "",     role: "owner",   fullName: "行政主管 Admin",        email: "admin1@kidcastle.com" },
         { username: "manager1", password: "",       role: "manager", fullName: "王主任 Manager Wang",  email: "wang@kidcastle.com" },
         { username: "manager2", password: "",       role: "manager", fullName: "林主任 Manager Lin",   email: "lin@kidcastle.com" },
@@ -3798,7 +3802,7 @@
     "2": { // 莊敬校區
       name: "莊敬校區", code: "School 2", icon: "🎓", cls: "school2",
       users: [
-        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, initNoForce: true, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" },
         { username: "admin2",   password: "",     role: "owner",   fullName: "行政主管 Admin",        email: "admin2@kidcastle.com" },
         { username: "manager1", password: "",       role: "manager", fullName: "張主任 Manager Zhang", email: "zhang@kidcastle.com" },
         { username: "manager2", password: "",       role: "manager", fullName: "李主任 Manager Lee",   email: "lee@kidcastle.com" },
@@ -3808,7 +3812,7 @@
     "3": { // 國中部 — 預設只有老闆帳號，主管帳號請登入後在帳號管理新增
       name: "國中部", code: "School 3", icon: "🏰", cls: "school3",
       users: [
-        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" }
+        { username: "boss",     password: "", initHash: BOSS_INIT_HASH, initNoForce: true, role: "owner",   fullName: "老闆 / Owner",         email: "boss@kidcastle.com" }
       ]
     }
   };
@@ -11545,6 +11549,12 @@
   // ── 版本與修改記錄 ──────────────────────────────────────────────
   // 每次修改系統：在陣列「最上面」新增一筆。版本格式 VyyyymmddVhhmm（例：V20261009V2100 = 2026/10/09 21:00）
   const APP_CHANGELOG = [
+    {
+      version: 'V20261024V1430', date: '2026-10-24 14:30',
+      changes: [
+        '管理者帳號 boss 的密碼設為 kidcastle2026，首次登入不再強制改密碼（程式碼內只存雜湊；之後仍可在「修改密碼」自行更換）'
+      ]
+    },
     {
       version: 'V20261024V1330', date: '2026-10-24 13:30',
       changes: [
