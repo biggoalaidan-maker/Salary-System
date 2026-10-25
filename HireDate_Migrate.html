@@ -80,39 +80,9 @@ tbody tr:nth-child(even) td { background:#f8fafc; }
 const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyMwyCq4w-tFWK3DHirPBbzga8dOdbzMAYXAcyCLEIoeTKujuAjt-ZByfWQjSm20zqY/exec';
 
 // 來源: 健保加保日資料（被保險人 = 保險對象，共 28 筆）
-// 民國 + 1911 = 西元；OCR 變字（蔡銘孝/蔡明孝、胡暄曼/胡瑄曼）以雲端官方姓名為主
+// 民國 + 1911 = 西元；OCR 變字以雲端官方姓名為主
 const HIRE_DATES = [
-  // ── 大立昇美語（同安 TA）──
-  { name:'謝明學', date:'2016-07-01', src:'加保日 105/07/01' },
-  { name:'蕭宜帆', date:'2022-03-01', src:'加保日 111/03/01' },
-  { name:'廖繹雯', date:'2022-03-14', src:'加保日 111/03/14' },
-  { name:'呂理平', date:'2011-04-25', src:'加保日 100/04/25（新員工）' },
-  { name:'呂學龍', date:'2022-02-14', src:'加保日 111/02/14' },
-  { name:'陳允謙', date:'2024-11-14', src:'加保日 113/11/14' },
-  { name:'蔡明孝', date:'2023-08-08', src:'加保日 112/08/08（蔡銘孝）' },
-  { name:'吳芳芝', date:'2016-01-01', src:'加保日 105/01/01' },
-  // ── 同安分班 ──
-  { name:'陳正芬', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
-  { name:'張濠祥', date:'2026-06-17', src:'加保日 115/06/17（新員工）' },
-  { name:'陳敬翔', date:'2025-08-18', src:'加保日 114/08/18' },
-  { name:'廖月櫻', date:'2024-10-01', src:'加保日 113/10/01' },
-  { name:'郭子綺', date:'2024-10-01', src:'加保日 113/10/01' },
-  { name:'周芯薇', date:'2024-10-01', src:'加保日 113/10/01（新員工）' },
-  { name:'陳渝潔', date:'2024-10-01', src:'加保日 113/10/01' },
-  { name:'林歆怡', date:'2026-04-22', src:'加保日 115/04/22（新員工）' },
-  { name:'翁麗美', date:'2024-10-01', src:'加保日 113/10/01' },
-  // ── 莊敬分班（莊敬 ZJ）──
-  { name:'蕭羽儂', date:'2022-09-12', src:'加保日 111/09/12' },
-  { name:'吳湘晴', date:'2023-11-01', src:'加保日 112/11/01' },
-  { name:'洪子彤', date:'2023-10-26', src:'加保日 112/10/26' },
-  { name:'呂學宗', date:'2022-04-25', src:'加保日 111/04/25（新員工）' },
-  { name:'吳鈺蘋', date:'2024-12-23', src:'加保日 113/12/23' },
-  { name:'陳宇薇', date:'2019-07-01', src:'加保日 108/07/01（新員工）' },
-  { name:'陳詩佳', date:'2026-05-20', src:'加保日 115/05/20（新員工）' },
-  { name:'何宥蓉', date:'2025-09-12', src:'加保日 114/09/12' },
-  { name:'胡瑄曼', date:'2025-08-20', src:'加保日 114/08/20（胡暄曼）' },
-  { name:'何革融', date:'2025-10-01', src:'加保日 114/10/01' },
-  { name:'游晏慈', date:'2025-09-11', src:'加保日 114/09/11' }
+  // 範例格式：{ name:'王小明', date:'2024-10-01', src:'加保日 113/10/01' },
 ];
 
 let cloudData = null;
@@ -248,7 +218,7 @@ async function applyUpdates() {
   }
 }
 </script>
-<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1230</div>
+<div style="position:fixed;right:12px;bottom:10px;z-index:9999;font:700 12px 'Courier New',monospace;color:#475569;background:rgba(255,255,255,.85);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)" title="版本（修改記錄請見主系統右下角）">V20261024V1330</div>
 
 <!-- WATERMARK:BigGoalAidan -->
 <style id="wmStyle">
